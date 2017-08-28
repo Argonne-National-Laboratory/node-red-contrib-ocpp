@@ -1,0 +1,129 @@
+
+<script type="text/javascript">
+    RED.nodes.registerType('ocpp request', {
+        category: 'OCPP',
+        color: '#3FADB5',
+        defaults: {
+            name: {value: "", required: false},
+            remotecb: {value: "", type: "ocpp-remote-cp"},
+            command: { value: "", required: false},
+            cmddata: { value: "", required: false}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "file.jpg",
+        label: function() {
+            if (this.remotecb)
+                return this.name||RED.nodes.node(this.remotecb).label();
+            else
+                return this.name||"OCPP Request";
+        },
+
+    });
+
+</script>
+
+<script type="text/javascript">
+    function enableTab(id) {
+        var el = document.getElementById(id);
+        el.onkeydown = function(e) {
+            if (e.keyCode === 9) { // tab was pressed
+
+                // get caret position/selection
+                var val = this.value,
+                    start = this.selectionStart,
+                    end = this.selectionEnd;
+
+                // set textarea value to: text before caret + tab + text after caret
+                this.value = val.substring(0, start) + '\t' + val.substring(end);
+
+                // put caret at right position again
+                this.selectionStart = this.selectionEnd = start + 1;
+
+                // prevent the focus lose
+                return false;
+
+            }
+        };
+    }
+
+</script>
+
+<script type="text/x-red" data-template-name="ocpp request">
+
+    <div class="form-row">
+        <label for="node-input-remotecb"><i class="icon-tag"></i> EVSE</label>
+        <input type="text" id="node-input-remotecb" placeholder="Setup" /> 
+    </div>
+    <div class="form-row">
+        <label for="node-input-command"><i class="icon-cog"></i> Command</label>
+        <select id="node-input-command">
+            <option value="UnlockConnector">UnlockConnector</option>
+            <option value="Reset">Reset</option>
+            <option value="ChangeAvailability">ChangeAvailability</option>
+            <option value="GetDiagnostics">GetDiagnostics</option>
+            <option value="ClearCache">ClearCache</option>
+            <option value="UpdateFirmware">UpdateFirmware</option>
+            <option value="ChangeConfiguration">ChangeConfiguration</option>
+            <option value="RemoteStartTransaction">RemoteStartTransaction</option>
+            <option value="RemoteStopTransaction">RemoteStopTransaction</option>
+            <option value="CancelReservation">CancelReservation</option>
+            <option value="DataTransfer">DataTransfer</option>
+            <option value="GetConfiguration">GetConfiguration</option>
+            <option value="GetLocalListVersion">GetLocalListVersion</option>
+            <option value="ReserveNow">ReserveNow</option>
+            <option value="SendLocalList">SendLocalList</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-cmddata"><i class="icon-cog"></i> Command Params</label>
+        <textarea rows="4" cols="50" id="node-input-cmddata" ></textarea>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name (defaults to EVSE setup name)" />
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="ocpp request">
+    <p>Send OCPP request messages to EVSEs</p>
+
+    <h3>Configuration Settings</h3>
+    <dl>
+        <dt>EVSE:</dt>
+        <dd>Choose, create, or modify an ESVE</dd>
+        <dt>Command:</i></dt>
+        <dd>(Optional) Select an OCPP command to send if none is passed in via <code>msg.payload.command</code></dd>
+        <dt>Command Params:</dt>
+        <dd>(Optional) OCPP command data object to send if none is passed in via <code>msg.payload.data</code>. Must be JSON formatted</dd>
+        <dt>Name:</dt>
+        <dd>The name shown on the workspace</dd>
+    </dl>
+
+    <h3>Inputs</h3>
+        <dl class="message-properties">
+            <dt><code>msg.payload.command</code> <i>optional</i> <span class="property-type">string</span></dt>
+            <dd>OCPP "Central System" request command</dd>
+            <dt><code>msg.payload.data</code> <i>optional</i> <span class="property-type">object</span></dt>
+            <dd>Object containing parameters for the command</dd>
+        </dl>
+
+    <h3>Outputs</h3>
+        <dl class="messge-properties">
+            <dt>ocpp <span class="property-type">object</dt>
+            <dd><code>msg.ocpp</code> objcet containing ocpp related information
+                <ul>
+                    <li><code>command</code>: the request command sent</li>
+                    <li><code>chargeBoxIdentity</code>: name identifying the charge box</li>
+                    <li><code>url</code>: URL of the targe EVSE request was sent to</li>
+                    <li><code>data</code>: object containing the parameters passed to the EVSE for the request (if any)</li>
+                </ul>
+            </dd>
+            <dt>payload <span class="property-type">object</dt>
+            <dd><code>msg.payload</code> object containing response data sent back from the EVSE. Contents vary depending on the request command.
+            </dd>
+        </dl>
+    
+</script>
