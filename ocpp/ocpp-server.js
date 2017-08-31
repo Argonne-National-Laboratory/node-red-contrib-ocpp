@@ -43,7 +43,7 @@ module.exports = function(RED) {
         RED.nodes.createNode(this, config);
         var node = this;
  
-        node.status({fill: "blue", shape: "ring", text: "Waiting..."})                    
+        node.status({fill: "blue", shape: "dot", text: "Waiting..."})                    
         
         ee = new EventEmitter();
 
@@ -54,20 +54,24 @@ module.exports = function(RED) {
 
         // make local copies of our configuration
         this.svcPort = config.port;
-        this.svcPath = config.path;
+        this.svcPath15 = config.path15;
+        this.svcPath16 = config.path16;
+        this.enabled15 = config.enabled15;
+        this.enabled16 = config.enabled16;
 
+        if (!this.enabled16 && !this.enabled15){
+            node.status({fill: "red", shape: "dot", text: "Disabled"})                                
+        }
         // read in the soap definition
-        let xml = fs.readFileSync( path.join(__dirname, "ocpp_centralsystemservice_1.5_final.wsdl.txt"),'utf8');
-
-        // console.log('About to start....')
+        let xml15 = fs.readFileSync( path.join(__dirname, "ocpp_centralsystemservice_1.5_final.wsdl"),'utf8');
+        let xml16 = fs.readFileSync( path.join(__dirname, "OCPP_CentralSystemService_1.6.wsdl"),'utf8');
+        
 
         // define the default ocpp soap function for the server
-        let ocppFunc = function(args, cb, headers){
-            // console.log('in Heartbeat');
+        let ocppFunc = function(ocppVer, args, cb, headers){
 
             // create a unique id for each message to identify responses
             let id = uuidv4();
-            // console.log("start:", id);
 
             // Set a timout for each event response so they do not pile up if not responded to
             let to = setTimeout( function(id){
@@ -86,7 +90,15 @@ module.exports = function(RED) {
             });
 
             // Add custom headers to the soap package
-            addHeaders(headers);
+            
+            
+            var soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
+            // if (ocppVer == "1.5")
+            //     soapSvr = soapServer15;
+            // else
+            //     soapSvr = soapServer16;
+
+            addHeaders(headers, soapSvr);
 
 
             var cbi = headers.chargeBoxIdentity||"Unknown";
@@ -94,29 +106,43 @@ module.exports = function(RED) {
 
             node.status({fill: "green", shape: "ring", text: cbi + ": " + action })
             // Send the message out to the rest of the flow
-            sendMsg(id, args,headers);
+            sendMsg(ocppVer, id, args,headers);
 
         }
 
         
         // define our services and the functions they call.
         // Future: should be able to define this by parsing the soap xml file read in above.
-        let ocppService = {
+        let ocppService15 = {
             CentralSystemService: {
                 CentralSystemServiceSoap12: {
-                    Heartbeat: function(args, cb, headers){ ocppFunc(args, cb, headers); },
-                    Authorize: function(args, cb, headers){ ocppFunc(args, cb, headers); },
-                    BootNotification: function(args, cb, headers){ ocppFunc(args, cb, headers); },
-                    MeterValues: function(args, cb, headers){ ocppFunc(args, cb, headers); },
-                    StatusNotification: function(args, cb, headers){ ocppFunc(args, cb, headers); },
-                    StartTransaction: function(args, cb, headers){ ocppFunc(args, cb, headers); },
-                    StopTransaction: function(args, cb, headers){ ocppFunc(args, cb, headers); }
+                    Heartbeat: function(args, cb, headers){ ocppFunc("1.5",args, cb, headers); },
+                    Authorize: function(args, cb, headers){ ocppFunc("1.5",args, cb, headers); },
+                    BootNotification: function(args, cb, headers){ ocppFunc("1.5",args, cb, headers); },
+                    MeterValues: function(args, cb, headers){ ocppFunc("1.5",args, cb, headers); },
+                    StatusNotification: function(args, cb, headers){ ocppFunc("1.5",args, cb, headers); },
+                    StartTransaction: function(args, cb, headers){ ocppFunc("1.5",args, cb, headers); },
+                    StopTransaction: function(args, cb, headers){ ocppFunc("1.5",args, cb, headers); }
                 }
             }
         }
 
+        let ocppService16 = {
+            CentralSystemService: {
+                CentralSystemServiceSoap12: {
+                    Heartbeat: function(args, cb, headers){ ocppFunc("1.6",args, cb, headers); },
+                    Authorize: function(args, cb, headers){ ocppFunc("1.6",args, cb, headers); },
+                    BootNotification: function(args, cb, headers){ ocppFunc("1.6",args, cb, headers); },
+                    MeterValues: function(args, cb, headers){ ocppFunc("1.6",args, cb, headers); },
+                    StatusNotification: function(args, cb, headers){ ocppFunc("1.6",args, cb, headers); },
+                    StartTransaction: function(args, cb, headers){ ocppFunc("1.6",args, cb, headers); },
+                    StopTransaction: function(args, cb, headers){ ocppFunc("1.6",args, cb, headers); }
+                }
+            }
+        }
+        
         var expressServer = express();
-        var soapServer;
+        var soapServer15, soapServer16;
 
         // Insert middleware into the flow...
         // WHY: Because:
@@ -151,7 +177,13 @@ module.exports = function(RED) {
         });
 
         const server = expressServer.listen(this.svcPort, function(){
-            soapServer = soap.listen(expressServer,{ path: node.svcPath, services: ocppService, xml: xml} );            
+            if (node.enabled15){
+                soapServer15 = soap.listen(expressServer,{ path: node.svcPath15, services: ocppService15, xml: xml15} );                            
+            }
+            if (node.enabled15){
+                soapServer16 = soap.listen(expressServer,{ path: node.svcPath16, services: ocppService16, xml: xml16} );            
+            }                
+
             // soapServer.log = function(type, data) {
             //     console.log('type:', type);
             //     if (type == 'replied'){
@@ -165,7 +197,8 @@ module.exports = function(RED) {
             ee.removeAllListeners();
             
             server.close();
-             // console.log('Server closed?...');
+            this.status({fill: "grey", shape: "dot", text: "stopped"})                                    
+            // console.log('Server closed?...');
             
         });
 
@@ -173,30 +206,35 @@ module.exports = function(RED) {
 
 
         // Creates the custom headers for our soap messages
-        const addHeaders = function(headers){
+        const addHeaders = function(headers, soapServer){
             let addressing = 'http://www.w3.org/2005/08/addressing';
             soapServer.clearSoapHeaders();
             //soapServer.addSoapHeader({'tns:chargeBoxIdentity': headers.chargeBoxIdentity });
             let action = headers.Action.$value||headers.Action;
             if (action){
                 action = action + 'Response';
-                soapServer.addSoapHeader({Action: action }, null, null, addressing);
+                //soapServer.addSoapHeader({Action: action }, null, null, addressing);
+                let act = '<Action xmlns="' + addressing + '" soap:mustUnderstand="true">' + action + '</Action>';
+                soapServer.addSoapHeader(act);
             }else{
                 node.log('ERROR: No Action Found- '+ JSON.stringify(headers));
             }
             let resp = '<RelatesTo RelationshipType="http://www.w3.org/2005/08/addressing/reply" xmlns="http://www.w3.org/2005/08/addressing">' + headers.MessageID + "</RelatesTo>"
             //soapServer.addSoapHeader({ RelatesTo: headers.MessageID}, null, null, addressing)
             soapServer.addSoapHeader(resp);
-            soapServer.addSoapHeader({ To: "http://www.w3.org/2005/08/addressing/anonymous"}, null, null, addressing)
+            soapServer.addSoapHeader({ To: "http://www.w3.org/2005/08/addressing/anonymous"}, null, null, addressing);
+            let cbid = '<tns:chargeBoxIdentity soap:mustUnderstand="true">' + headers.chargeBoxIdentity + '</tns:chargeBoxIdentity>';
+            soapServer.addSoapHeader(cbid);
         }
 
         // Creates the message any payload for sending out into the flow and sends it.
-        const sendMsg = function(msgId, args,headers){
+        const sendMsg = function( ocppVer, msgId, args, headers){
 
             // msg {
             //  msgId
             //  ocpp {
             //      MessageId
+            //      ocppVersion
             //      chargeBoxIdentity
             //      command
             //      From
@@ -225,6 +263,7 @@ module.exports = function(RED) {
             }
             // idenitfy which chargebox the message originated from
             msg.ocpp.chargeBoxIdentity = headers.chargeBoxIdentity||"Unknown";
+            msg.ocpp.ocppVersion = ocppVer||"Unknown";
 
             if(headers.From){
                 if(headers.From.Address){
@@ -256,6 +295,8 @@ module.exports = function(RED) {
         let node = this;
         // console.log('starting Response Node')
         
+        node.status({fill: "blue", shape: "dot", text: "Waiting..."})                    
+        
         this.on('input', function(msg) {
             var x = 0;
             if(msg.msgId){
@@ -278,7 +319,7 @@ module.exports = function(RED) {
 
         this.on('close', function(removed, done){
             if (!removed){
-                this.status({fill: "red", shape: "ring", text: "stopped"})                                    
+                this.status({fill: "grey", shape: "dot", text: "stopped"})                                    
             }
             done();
         })

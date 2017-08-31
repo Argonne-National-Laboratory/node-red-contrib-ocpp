@@ -5,7 +5,7 @@
             name: {value: "", required: false},
             cbId: {value: "", required:true},
             url: {value: "", required: true},
-            ocppver: {value: "1.5", required: false}
+            ocppver: {value: "1.5s", required: true}
         },
         label: function() {
             return this.name || this.cbId || "OCPP Reqest";
@@ -23,11 +23,10 @@
         <input type="text" id="node-config-input-url" />
     </div>
     <div class="form-row">
-        <label for="node-input-ocppver"><i class="icon-cog"></i> OCPP Ver</label>
-        <select id="node-input-ocppver">
-            <option value="1.5" selected>1.5 SOAP</option>
-            <option value="1.6">1.6 SOAP</option>
-            <option value="1.6j">1.6 JSON</option>
+        <label for="node-config-input-ocppver"><i class="icon-cog"></i> OCPP Ver</label>
+        <select id="node-config-input-ocppver">
+            <option value="1.5s">1.5 SOAP</option>
+            <option value="1.6s">1.6 SOAP</option>
         </select>
     </div>
     <div class="form-row">

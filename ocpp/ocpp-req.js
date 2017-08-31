@@ -11,9 +11,12 @@ module.exports = function(RED) {
 
         this.url = this.remotecb.url;
         this.cbId = this.remotecb.cbId;
+        this.ocppVer = this.remotecb.ocppver;
         this.name = config.name||this.remotecb.name;
         this.command = config.command;
         this.cmddata = config.cmddata;
+
+        // console.log(this.remotecb);
 
         this.on('input', function(msg) {
 
@@ -23,7 +26,8 @@ module.exports = function(RED) {
             }
 
             // create the client 
-            soap.createClient(path.join(__dirname,'ocpp15.wsdl'),wsdlOptions, function(err, client){
+            let wsdlFile = (this.ocppVer == "1.5s")? "ocpp_chargepointservice_1.5_final.wsdl" : "OCPP_CentralSystemService_1.6.wsdl"
+            soap.createClient(path.join(__dirname,wsdlFile),wsdlOptions, function(err, client){
                 if (err) node.error(err);
                 else{
 
@@ -33,6 +37,7 @@ module.exports = function(RED) {
                     msg.ocpp.command = msg.payload.command||node.command;
                     msg.ocpp.chargeBoxIdentity = cbId;
                     msg.ocpp.url = node.url;
+                    msg.ocpp.ocppVer = node.ocppVer;
                     msg.ocpp.data = msg.payload.data||JSON.parse(node.cmddata);
 
                     // set up or target charge point
