@@ -58,6 +58,7 @@
     <div class="form-row">
         <label for="node-input-command"><i class="icon-cog"></i> Command</label>
         <select id="node-input-command">
+            <option value="">&lt;None&gt;</option>
             <option value="UnlockConnector">UnlockConnector</option>
             <option value="Reset">Reset</option>
             <option value="ChangeAvailability">ChangeAvailability</option>
@@ -73,12 +74,17 @@
             <option value="GetLocalListVersion">GetLocalListVersion</option>
             <option value="ReserveNow">ReserveNow</option>
             <option value="SendLocalList">SendLocalList</option>
-        </select>
+            <option value="ClearChargingProfile">*ClearChargingProfile</option>
+            <option value="GetCompositeSchedule">*GetCompositeSchedule</option>
+            <option value="SetChargingProfile">*SetChargingProfile</option>
+            <option value="TriggerMessage">*TriggerMessage</option>            
+        </select><br/>
+        <p>* = 1.6 command only</p>
     </div>
 
     <div class="form-row">
         <label for="node-input-cmddata"><i class="icon-cog"></i> Command Params</label>
-        <textarea rows="4" cols="50" id="node-input-cmddata" ></textarea>
+        <textarea rows="4" cols="50" id="node-input-cmddata" placeholder="JSON formatted parameters"></textarea>
     </div>
 
     <div class="form-row">
