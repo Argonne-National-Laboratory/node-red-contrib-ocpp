@@ -2,21 +2,22 @@ var path = require('path');
 var soap = require('soap');
 
 module.exports = function(RED) {
-    function OcppRequestNode(config) {
+    function OcppRequestCPNode(config) {
         RED.nodes.createNode(this, config);
         
         var node = this;
 
-        this.remotecb = RED.nodes.getNode(config.remotecb);
+        this.remotecs = RED.nodes.getNode(config.remotecs);
 
-        this.url = this.remotecb.url;
-        this.cbId = this.remotecb.cbId;
-        this.ocppVer = this.remotecb.ocppver;
-        this.name = config.name||this.remotecb.name;
+        this.url = this.remotecs.url;
+        // this.cbId = this.remotecs.cbId;
+        this.cbId = this.name;
+        this.ocppVer = this.ocppver;
+        this.name = config.name||this.remotecs.name;
         this.command = config.command;
         this.cmddata = config.cmddata;
 
-        // console.log(this.remotecb);
+        // console.log(this.remotecs);
 
         this.on('input', function(msg) {
 
@@ -26,7 +27,7 @@ module.exports = function(RED) {
             }
 
             // create the client 
-            let wsdlFile = (this.ocppVer == "1.5s")? "ocpp_chargepointservice_1.5_final.wsdl" : "OCPP_ChargePointService_1.6.wsdl"
+            let wsdlFile = (this.ocppVer == "1.5s")? "ocpp_centralsystemservice_1.5_final.wsdl" : "OCPP_CentralSystemService_1.6.wsdl"
             soap.createClient(path.join(__dirname,wsdlFile),wsdlOptions, function(err, client){
                 if (err) node.error(err);
                 else{
@@ -48,6 +49,7 @@ module.exports = function(RED) {
 
                     client.addSoapHeader({To: msg.ocpp.url},null,null,'http://www.w3.org/2005/08/addressing');
 
+                    client.addSoapHeader({Action: '/' + msg.ocpp.command}, null, null,'http://www.w3.org/2005/08/addressing' )
                     //client.addSoapHeader({Action: '/' + msg.ocpp.command||node.command }, null, null, 'http://www.w3.org/2005/08/addressing');
 
                     // send the specific OCPP message
@@ -71,5 +73,5 @@ module.exports = function(RED) {
         });
     }
     // register our node
-    RED.nodes.registerType("ocpp request",OcppRequestNode);
+    RED.nodes.registerType("ocpp request cp",OcppRequestCPNode);
 }

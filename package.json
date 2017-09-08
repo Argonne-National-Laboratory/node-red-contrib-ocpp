@@ -1,8 +1,8 @@
 {
   "name": "node-red-contrib-ocpp-centralsystem",
-  "version": "0.1.0",
-  "description": "A set of nodes to communicate via OCPP to a compatible charge box",
-  "main": "ocpp.js",
+  "version": "0.2.0",
+  "description": "A set of nodes to communicate via OCPP to a compatible charge box or central system",
+  "main": "ocpp-req.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,7 +15,9 @@
   "node-red": {
     "nodes": {
       "ocpp-req": "ocpp/ocpp-req.js",
+      "ocpp-cp-req" : "ocpp/ocpp-cp-req.js",
       "ocpp-remote-cp": "ocpp/ocpp-remote-cp.js",
+      "ocpp-remote-cs": "ocpp/ocpp-remote-cs.js",
       "ocpp-server": "ocpp/ocpp-server.js"
     }
   },
