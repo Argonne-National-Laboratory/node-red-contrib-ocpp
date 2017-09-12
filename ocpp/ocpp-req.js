@@ -26,7 +26,7 @@ module.exports = function(RED) {
             }
 
             // create the client 
-            let wsdlFile = (this.ocppVer == "1.5s")? "ocpp_chargepointservice_1.5_final.wsdl" : "OCPP_ChargePointService_1.6.wsdl"
+            let wsdlFile = (node.ocppVer == "1.5s")? "ocpp_chargepointservice_1.5_final.wsdl" : "OCPP_ChargePointService_1.6.wsdl"
             soap.createClient(path.join(__dirname,wsdlFile),wsdlOptions, function(err, client){
                 if (err) node.error(err);
                 else{
@@ -44,11 +44,18 @@ module.exports = function(RED) {
                     client.setEndpoint(msg.ocpp.url);
 
                     // add headers that are specific to OCPP specification
+                    let addressing = 'http://www.w3.org/2005/08/addressing';
+
                     client.addSoapHeader({'tns:chargeBoxIdentity': msg.ocpp.chargeBoxIdentity});
 
-                    client.addSoapHeader({To: msg.ocpp.url},null,null,'http://www.w3.org/2005/08/addressing');
+                    client.addSoapHeader({To: msg.ocpp.url},null,null,addressing);
 
-                    //client.addSoapHeader({Action: '/' + msg.ocpp.command||node.command }, null, null, 'http://www.w3.org/2005/08/addressing');
+                    if (node.ocppVer != "1.5s"){
+                        let act = '<Action xmlns="' + addressing + '" soap:mustUnderstand="true">' + msg.ocpp.command + '</Action>';
+                        client.addSoapHeader(act);
+                    }
+                                        
+                    // client.addSoapHeader({Action: '/' + msg.ocpp.command||node.command }, null, null, 'http://www.w3.org/2005/08/addressing');
 
                     // send the specific OCPP message
                     client[msg.ocpp.command](msg.ocpp.data, function(err, response){

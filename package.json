@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-ocpp-centralsystem",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A set of nodes to communicate via OCPP to a compatible charge box or central system",
   "main": "ocpp-req.js",
   "scripts": {
@@ -15,10 +15,11 @@
   "node-red": {
     "nodes": {
       "ocpp-req": "ocpp/ocpp-req.js",
-      "ocpp-cp-req" : "ocpp/ocpp-cp-req.js",
+      "ocpp-cp-req": "ocpp/ocpp-cp-req.js",
       "ocpp-remote-cp": "ocpp/ocpp-remote-cp.js",
       "ocpp-remote-cs": "ocpp/ocpp-remote-cs.js",
-      "ocpp-server": "ocpp/ocpp-server.js"
+      "ocpp-server": "ocpp/ocpp-server.js",
+      "ocpp-server-cp": "ocpp/ocpp-server-cp.js"
     }
   },
   "author": "Bryan Nystrom <bnystrom@chicagoit.com> (http://www.chicagoit.com)",
@@ -26,6 +27,7 @@
   "dependencies": {
     "express": "^4.15.4",
     "soap": "*",
-    "uuid": "^3.1.0"
+    "uuid": "^3.1.0",
+    "xml-js": "^1.4.1"
   }
 }

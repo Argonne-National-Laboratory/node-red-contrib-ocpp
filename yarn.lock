@@ -475,7 +475,7 @@ safe-buffer@^5.0.1, safe-buffer@~5.1.0, safe-buffer@~5.1.1:
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/safe-buffer/-/safe-buffer-5.1.1.tgz#893312af69b2123def71f57889001671eeb2c853"
 
-sax@>=0.6:
+sax@>=0.6, sax@^1.2.1:
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.4.tgz#2816234e2378bddc4e5354fab5caa895df7100d9"
 
@@ -635,6 +635,12 @@ xml-crypto@~0.8.0:
   dependencies:
     xmldom "=0.1.19"
     xpath.js ">=0.0.3"
+
+xml-js@^1.4.1:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/xml-js/-/xml-js-1.4.1.tgz#b34fface0c6d89804aaf0a182821ac1ed08a01e9"
+  dependencies:
+    sax "^1.2.1"
 
 xmldom@=0.1.19:
   version "0.1.19"

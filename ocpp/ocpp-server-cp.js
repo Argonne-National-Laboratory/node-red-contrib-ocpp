@@ -19,15 +19,16 @@ let ee;
 // could be removed
 //
 
-soap.Server.prototype.__envelope = soap.Server.prototype._envelope;
+// soap.Server.prototype.__envelope = soap.Server.prototype._envelope;
 
-soap.Server.prototype._envelope = function(body, includeTimestamp){
-    //var xml = ""
-    var xml = this.__envelope(body, includeTimestamp);
-    xml = xml.replace(' xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"', '');
-    //xml = xml.replace(' xmlns:tns="urn://Ocpp/Cs/2012/06/"','');
-    return xml.replace("http://schemas.xmlsoap.org/soap/envelope/","http://www.w3.org/2003/05/soap-envelope");
-}
+// soap.Server.prototype._envelope = function(body, includeTimestamp){
+//     //var xml = ""
+//     var xml = this.__envelope(body, includeTimestamp);
+//     xml = xml.replace(' xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"', '');
+//     //xml = xml.replace(' xmlns:tns="urn://Ocpp/Cs/2012/06/"','');
+//     return xml.replace("http://schemas.xmlsoap.org/soap/envelope/","http://www.w3.org/2003/05/soap-envelope");
+// }
+
 // end envelope header modifications
 
 ////////////////////////////////////
@@ -37,7 +38,7 @@ soap.Server.prototype._envelope = function(body, includeTimestamp){
 module.exports = function(RED) {
 
     // Create a server node for monitoring incoming soap messages
-    function OCPPServerNode(config) {
+    function OCPPChargePointServerNode(config) {
 
         // console.log('starting Server Node')
         
@@ -64,8 +65,8 @@ module.exports = function(RED) {
             node.status({fill: "red", shape: "dot", text: "Disabled"})                                
         }
         // read in the soap definition
-        let wsdl15 = fs.readFileSync( path.join(__dirname, "ocpp_centralsystemservice_1.5_final.wsdl"),'utf8');
-        let wsdl16 = fs.readFileSync( path.join(__dirname, "OCPP_CentralSystemService_1.6.wsdl"),'utf8');
+        let wsdl15 = fs.readFileSync( path.join(__dirname, "ocpp_chargepointservice_1.5_final.wsdl"),'utf8');
+        let wsdl16 = fs.readFileSync( path.join(__dirname, "OCPP_ChargePointService_1.6.wsdl"),'utf8');
         
 
         // define the default ocpp soap function for the server
@@ -188,8 +189,9 @@ module.exports = function(RED) {
                 soapServer16 = soap.listen(expressServer,{ path: node.svcPath16, services: ocppService16, xml: wsdl16} );            
             }                
 
-            // soapServer.log = function(type, data) {
+            // soapServer15.log = function(type, data) {
             //     console.log('type:', type);
+            //     console.log('data', data)
             //     if (type == 'replied'){
             //         // console.log('Sent: ', data);
             //     }
@@ -205,6 +207,9 @@ module.exports = function(RED) {
             // console.log('Server closed?...');
             
         });
+
+
+
 
         // Creates the custom headers for our soap messages
         const addHeaders = function(headers, soapServer){
@@ -224,6 +229,7 @@ module.exports = function(RED) {
     
             }
             let resp = '<RelatesTo RelationshipType="http://www.w3.org/2005/08/addressing/reply" xmlns="http://www.w3.org/2005/08/addressing">' + headers.MessageID + "</RelatesTo>"
+            //soapServer.addSoapHeader({ RelatesTo: headers.MessageID}, null, null, addressing)
             soapServer.addSoapHeader(resp);
             soapServer.addSoapHeader({ To: "http://www.w3.org/2005/08/addressing/anonymous"}, null, null, addressing);
             let cbid = '<tns:chargeBoxIdentity soap:mustUnderstand="true">' + headers.chargeBoxIdentity + '</tns:chargeBoxIdentity>';
@@ -256,7 +262,6 @@ module.exports = function(RED) {
             msg.payload = {};
             msg.msgId = msgId;
 
-
             msg.ocpp.command = command;
 
             // idenitfy which chargebox the message originated from
@@ -287,7 +292,7 @@ module.exports = function(RED) {
     }
 
     // Create a "resonse" node for returning messages to soap
-    function OCPPResponseNode(config) {
+    function OCPPChargePointResponseNode(config) {
         RED.nodes.createNode(this, config);
 
         let node = this;
@@ -324,6 +329,6 @@ module.exports = function(RED) {
     }
 
 
-    RED.nodes.registerType("ocpp server",OCPPServerNode);
-    RED.nodes.registerType("ocpp response", OCPPResponseNode);
+    RED.nodes.registerType("ocpp chargepoint server",OCPPChargePointServerNode);
+    RED.nodes.registerType("ocpp chargepoint response", OCPPChargePointResponseNode);
 }
