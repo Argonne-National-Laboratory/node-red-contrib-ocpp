@@ -18,8 +18,7 @@
       "ocpp-cp-req": "ocpp/ocpp-cp-req.js",
       "ocpp-remote-cp": "ocpp/ocpp-remote-cp.js",
       "ocpp-remote-cs": "ocpp/ocpp-remote-cs.js",
-      "ocpp-server": "ocpp/ocpp-server.js",
-      "ocpp-server-cp": "ocpp/ocpp-server-cp.js"
+      "ocpp-server": "ocpp/ocpp-server.js"
     }
   },
   "author": "Bryan Nystrom <bnystrom@chicagoit.com> (http://www.chicagoit.com)",

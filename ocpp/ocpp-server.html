@@ -21,6 +21,67 @@
             enabled15: { value: false, required: true},
             path15: {value: "", required: true},
             enabled16: { value: true, required: true},
+            path16: {value: "", required: true, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase();}},
+            log: { value: true, required: true },
+            pathlog: {value: "", required: false}
+        },
+        inputs: 0,
+        outputs: 1,
+        icon: "white-globe.png",
+        label: function() {
+            let tmpName = "OCPP Server";
+            if (this.port)
+                tmpName = "OCPP Server Port " + this.port;
+                            
+            return this.name||tmpName;
+        },
+        oneditprepare: function() {
+            toggleEnabled(document.getElementById('node-input-enabled16'));            
+            toggleEnabled(document.getElementById('node-input-enabled15'));            
+            toggleEnabled(document.getElementById('node-input-log'));            
+        },
+        oneditsave: function() {
+            var e16 = document.getElementById('node-input-enabled16').checked;            
+            var e15 = document.getElementById('node-input-enabled15').checked;                        
+            if (!e16 && !e15){
+                alert("No OCPP services are enabled.")
+            }
+        }
+
+    });
+
+    
+    RED.nodes.registerType('ocpp response', {
+        category: 'OCPP',
+        color: '#3FADB5',
+        defaults: {
+            name: {value: "", required: false},
+            //remotecb: {value: "", type: "ocpp-remote-cp"},
+            //command: { value: "", required: false},
+            //cmddata: { value: "", required: false}
+        },
+        inputs: 1,
+        outputs: 0,
+        align: 'right',
+        icon: "white-globe.png",
+        label: function() {
+            return this.name||"OCPP Response";
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        }
+
+    });
+
+    RED.nodes.registerType('ocpp chargepoint server', {
+        category: 'OCPP',
+        color: '#3FADB5',
+        defaults: {
+            name: {value: "", required: false},
+            port: {value: "", required: true, validate: RED.validators.number()},
+            enabled15: { value: false, required: true},
+            path15: {value: "", required: true},
+            enabled16: { value: true, required: true},
             path16: {value: "", required: true, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase();}}
         },
         inputs: 0,
@@ -47,27 +108,6 @@
 
     });
 
-    RED.nodes.registerType('ocpp response', {
-        category: 'OCPP',
-        color: '#3FADB5',
-        defaults: {
-            name: {value: "", required: false},
-            //remotecb: {value: "", type: "ocpp-remote-cp"},
-            //command: { value: "", required: false},
-            //cmddata: { value: "", required: false}
-        },
-        inputs: 1,
-        outputs: 0,
-        align: 'right',
-        icon: "white-globe.png",
-        label: function() {
-            return this.name||"OCPP Response";
-        },
-        labelStyle: function() {
-            return this.name?"node_label_italic":"";
-        }
-
-    });
 
 </script>
 
@@ -80,8 +120,8 @@
     <div class="form-row">
             <label for="node-input-port"><i class="icon-tag"></i> Port</label>
             <input type="number" id="node-input-port" placeholder="Port Number (example: 8080)" />
-        </div>
-        <div class="header">OCPP 1.5</div>
+    </div>
+    <div class="header">OCPP 1.5</div>
     <div class="bordered">
         <div class="checkbox">
             <label>
@@ -108,6 +148,22 @@
             <input type="text" id="node-input-path16" placeholder="OCPP 1.6 path (example: /CentralSystemService16 )" />
         </div>
     </div>
+    <div class="header">Logging</div>
+    <div class="bordered">
+        <div class="checkbox">
+            <label>
+                <input type="checkbox" value="" id="node-input-log" onclick="toggleEnabled(this)"/>
+                logging enabled
+            </label>
+        </div>
+        <div id="containerlog" class="form-row">
+            <label for="node-input-pathlog" >
+                <i class="icon-globe"></i> Path
+            </label>
+            <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
+        </div>
+    </div>
+    
 </script>
 
 <script type="text/x-red" data-help-name="ocpp server">
@@ -190,20 +246,107 @@
     
 </script>
 
+<script type="text/x-red" data-template-name="ocpp chargepoint server">
+    
+        <div class="form-row">
+            <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+            <input type="text" id="node-input-name" placeholder="Name (defaults to :<PORT><URL>)" />
+        </div>
+        <div class="form-row">
+                <label for="node-input-port"><i class="icon-tag"></i> Port</label>
+                <input type="number" id="node-input-port" placeholder="Port Number (example: 8080)" />
+            </div>
+            <div class="header">OCPP 1.5</div>
+        <div class="bordered">
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" value="" id="node-input-enabled15" onclick="toggleEnabled(this)">
+                    1.5 enabled
+                </label>
+            </div>
+    
+            <div id="container15" class="form-row">
+                <label for="node-input-path15"><i class="icon-globe"></i> Path</label>
+                <input type="text" id="node-input-path15" placeholder="OCPP 1.5 path (example: /CentralSystemService15 )" />
+            </div>
+        </div>
+        <div class="header">OCPP 1.6</div>
+        <div class="bordered">
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" value="" id="node-input-enabled16" onclick="toggleEnabled(this)">
+                    1.6 enabled
+                </label>
+            </div>
+            <div id="container16" class="form-row">
+                <label for="node-input-path16" ><i class="icon-globe"></i> Path</label>
+                <input type="text" id="node-input-path16" placeholder="OCPP 1.6 path (example: /CentralSystemService16 )" />
+            </div>
+        </div>
+    </script>
+    
+    <script type="text/x-red" data-help-name="ocpp chargepoint server">
+        <p>Accepts incomming requests from OCPP EVSEs</p>
+    
+        <h3>Configuration Settings</h3>
+        <dl>
+            <dt>URL: <i>(example) /CentralSystemService15</i></dt>
+            <dd>The path portion of the server that needs to be configured on the ESVE</dd>
+            <dt>Port: <i>(example) 8080</i></dt>
+            <dd>The incoming port that the server listens on. If deploying multiple ocpp servers, the port numbers should be unique.</dd>
+            <dt>Name:</dt>
+            <dd>The name shown on the workspace</dd>
+        </dl>
+    
+            <h3>Outputs</h3>
+                <dl class="messge-properties">
+                    <dt>ocpp <span class="property-type">object</dt>
+                    <dd><code>msg.ocpp</code> objcet containing ocpp related information
+                        <ul>
+                            <li><code>command</code>: the incomming request command</li>
+                            <li><code>chargeBoxIdentity</code>: name identifying the charge box</li>
+                            <li><code>From</code>: optional address of incoming request</li>
+                            <li><code>MessageID</code>: optional incoming request message id</li>
+                        </ul>
+                    </dd>
+                    <dt>payload <span class="property-type">object</dt>
+                    <dd><code>msg.payload</code> object contains the following:
+                        <ul>
+                            <li><code>command</code>: the incomming request command</li>
+                            <li><code>data</code>: arguments received with the incoming request command stored as an key/value pair</li>
+                        </ul>
+    
+                    </dd>
+                </dl>
+    
+        <h3>Details</h3>
+            <p><code>msg.msgID</code> contains a unique message identifier that must be passed to the ocpp resonse node along with 
+            the payload (if any) of the response. It is recommended that the <code>msg</code> output from this node remain in tact 
+            and passed all the way through to the ocpp response node, only modifying or replacing the <code>msg.payload</code> portion</p>
+            <p>The response to each incoming message has a lifespan timeout of 2 minutes, so any
+            responses to messages must be returned within that time or the message is simply discarded</p>
+            <p>The <code>msg.payload.data</code> arguments object received from the request vary depending on the command. Refer to the OCPP specification for information
+                about required and optional parameters that may be received for each command.
+    
+    </script>
+    
+
 
 <script>
-    // document.getElementById("occpBtn1").onclick;
 
     function toggleEnabled(elem){
 
-        if (elem.id == "node-input-enabled16"){
+        if (elem.id == 'node-input-enabled16'){
             document.getElementById('node-input-path16').disabled = !(elem.checked);
             document.getElementById('container16').hidden = !(elem.checked);
         }
-        else {
-            document.getElementById('node-input-path15').disabled = (elem.checked == true) ? false : true;
+        else if (elem.id == 'node-input-enabled15') {
+            document.getElementById('node-input-path15').disabled = !(elem.checked);
             document.getElementById('container15').hidden = !(elem.checked);
         }
+        else {
+            document.getElementById('node-input-pathlog').disabled = !(elem.checked);
+            document.getElementById('containerlog').hidden = !(elem.checked);
+        }
     }
-
 </script>
