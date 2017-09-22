@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-ocpp-centralsystem",
-  "version": "0.2.1",
+  "version": "0.3.1",
   "description": "A set of nodes to communicate via OCPP to a compatible charge box or central system",
   "main": "ocpp-req.js",
   "scripts": {
