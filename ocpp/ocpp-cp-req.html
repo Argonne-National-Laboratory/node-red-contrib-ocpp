@@ -1,3 +1,16 @@
+<style>
+    .header {
+        text-decoration: underline;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+    .bordered {
+        padding-left: 12px;
+        padding-top: 4px;
+        border: 1px solid lightgrey;
+        box-sizing: border-box;
+    }
+</style>
 
 <script type="text/javascript">
     RED.nodes.registerType('ocpp request cp', {
@@ -8,7 +21,10 @@
             remotecs: {value: "", type: "ocpp-remote-cs"},
             ocppver: {value: "1.5s", required: true},
             command: { value: "", required: false},
-            cmddata: { value: "", required: false}
+            cmddata: { value: "", required: false},
+            log: { value: true, required: true },
+            pathlog: {value: "", required: false}
+            
         },
         inputs: 1,
         outputs: 1,
@@ -19,6 +35,9 @@
             else
                 return this.name||"OCPP ChargePoint Request";
         },
+        oneditprepare: function() {
+            toggleEnabled(document.getElementById('node-input-log'));            
+        }
 
     });
 
@@ -68,6 +87,23 @@
         <textarea rows="4" cols="50" id="node-input-cmddata" placeholder="JSON formatted parameters"></textarea>
     </div>
 
+    <div class="header">Logging</div>
+    <div class="bordered">
+        <div class="checkbox">
+            <label>
+                <input type="checkbox" value="" id="node-input-log" onclick="toggleEnabled(this)"/>
+                logging enabled
+            </label>
+        </div>
+        <div id="containerlog" class="form-row">
+            <label for="node-input-pathlog" >
+                <i class="icon-globe"></i> Path
+            </label>
+            <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
+        </div>
+    </div>
+    
+
 </script>
 
 <script type="text/x-red" data-help-name="ocpp request cp">
@@ -109,4 +145,10 @@
             </dd>
         </dl>
     
+</script>
+<script>    
+    function toggleEnabled(elem){    
+        document.getElementById('node-input-pathlog').disabled = !(elem.checked);
+        //document.getElementById('containerlog').hidden = !(elem.checked);
+    }
 </script>

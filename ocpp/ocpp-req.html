@@ -1,3 +1,16 @@
+<style>
+    .header {
+        text-decoration: underline;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+    .bordered {
+        padding-left: 12px;
+        padding-top: 4px;
+        border: 1px solid lightgrey;
+        box-sizing: border-box;
+    }
+</style>
 
 <script type="text/javascript">
     RED.nodes.registerType('ocpp request', {
@@ -7,7 +20,10 @@
             name: {value: "", required: false},
             remotecb: {value: "", type: "ocpp-remote-cp"},
             command: { value: "", required: false},
-            cmddata: { value: "", required: false}
+            cmddata: { value: "", required: false},
+            log: { value: true, required: true },
+            pathlog: {value: "", required: false}
+            
         },
         inputs: 1,
         outputs: 1,
@@ -18,39 +34,21 @@
             else
                 return this.name||"OCPP Request";
         },
+        oneditprepare: function() {
+            toggleEnabled(document.getElementById('node-input-log'));            
+        }
 
     });
 
 </script>
 
-<script type="text/javascript">
-    // function enableTab(id) {
-    //     var el = document.getElementById(id);
-    //     el.onkeydown = function(e) {
-    //         if (e.keyCode === 9) { // tab was pressed
-
-    //             // get caret position/selection
-    //             var val = this.value,
-    //                 start = this.selectionStart,
-    //                 end = this.selectionEnd;
-
-    //             // set textarea value to: text before caret + tab + text after caret
-    //             this.value = val.substring(0, start) + '\t' + val.substring(end);
-
-    //             // put caret at right position again
-    //             this.selectionStart = this.selectionEnd = start + 1;
-
-    //             // prevent the focus lose
-    //             return false;
-
-    //         }
-    //     };
-    // }
-
-</script>
 
 <script type="text/x-red" data-template-name="ocpp request">
 
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name (defaults to EVSE setup name)" />
+    </div>
     <div class="form-row">
         <label for="node-input-remotecb"><i class="icon-tag"></i> EVSE</label>
         <input type="text" id="node-input-remotecb" placeholder="Setup" /> 
@@ -86,11 +84,23 @@
         <label for="node-input-cmddata"><i class="icon-cog"></i> Command Params</label>
         <textarea rows="4" cols="50" id="node-input-cmddata" placeholder="JSON formatted parameters"></textarea>
     </div>
-
-    <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name (defaults to EVSE setup name)" />
+    <div class="header">Logging</div>
+    <div class="bordered">
+        <div class="checkbox">
+            <label>
+                <input type="checkbox" value="" id="node-input-log" onclick="toggleEnabled(this)"/>
+                logging enabled
+            </label>
+        </div>
+        <div id="containerlog" class="form-row">
+            <label for="node-input-pathlog" >
+                <i class="icon-globe"></i> Path
+            </label>
+            <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
+        </div>
     </div>
+    
+
 </script>
 
 <script type="text/x-red" data-help-name="ocpp request">
@@ -133,3 +143,10 @@
         </dl>
     
 </script>
+<script>
+    
+        function toggleEnabled(elem){    
+            document.getElementById('node-input-pathlog').disabled = !(elem.checked);
+            //document.getElementById('containerlog').hidden = !(elem.checked);
+        }
+    </script>

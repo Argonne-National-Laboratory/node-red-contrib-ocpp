@@ -1,5 +1,7 @@
 var path = require('path');
 var soap = require('soap');
+var os = require('os');
+var fs = require('fs');
 
 module.exports = function(RED) {
     function OcppRequestNode(config) {
@@ -15,8 +17,8 @@ module.exports = function(RED) {
         this.name = config.name||this.remotecb.name;
         this.command = config.command;
         this.cmddata = config.cmddata;
-
-        // console.log(this.remotecb);
+        this.log = config.log;
+        this.pathlog = config.pathlog;
 
         this.on('input', function(msg) {
 
@@ -54,7 +56,48 @@ module.exports = function(RED) {
                         let act = '<Action xmlns="' + addressing + '" soap:mustUnderstand="true">' + msg.ocpp.command + '</Action>';
                         client.addSoapHeader(act);
                     }
-                                        
+
+                    // Setup logging
+                    var log_file;
+                    if (node.pathlog == "") node.log = false;
+                    if (node.log){
+                        //console.log('Request Opening Log File: ', node.pathlog);
+                        
+                        log_file = fs.createWriteStream(node.pathlog, {flags : 'w+'});
+                        log_file.on('error', (err) => { node.error('Log file Error: (' + node.name +') ' + err); log_file.end(); node.log = false;})                                        
+                    }        
+                    if (node.log){
+                        client.on('request', function(xmlSoap, xchgId){
+                            var date = new Date().toLocaleString();
+                            log_file.write(date 
+                                        + '\t' + 'node: ' + node.name 
+                                        + '\t' + 'type: request' 
+                                        + '\t' + 'msgId: ' + xchgId
+                                        + '\t' + xmlSoap
+                                        + os.EOL);
+                        });
+    
+                        client.on('response', function(xmlSoap, fullinfo, xchgId){
+                            var date = new Date().toLocaleString();
+                            log_file.write(date 
+                                + '\t' + 'node: ' + node.name 
+                                + '\t' + 'type: response' 
+                                + '\t' + 'msgId: ' + xchgId
+                                + '\t' + xmlSoap
+                                + os.EOL);
+                        });
+    
+                        client.on('soapError', function(err, xchgId){
+                            var date = new Date().toLocaleString();
+                            log_file.write(date 
+                                + '\t' + 'node: ' + node.name 
+                                + '\t' + 'type: error' 
+                                + '\t' + 'msgId: ' + xchgId
+                                + '\t' + err
+                                + os.EOL);
+                        });
+        
+                    }
                     // client.addSoapHeader({Action: '/' + msg.ocpp.command||node.command }, null, null, 'http://www.w3.org/2005/08/addressing');
 
                     // send the specific OCPP message
