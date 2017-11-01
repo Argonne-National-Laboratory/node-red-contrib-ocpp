@@ -13,16 +13,17 @@
 </style>
 
 <script type="text/javascript">
-    RED.nodes.registerType('CP Request SOAP', {
+    RED.nodes.registerType('CP client JSON', {
         category: 'OCPP',
         color: '#3FADB5',
         defaults: {
             name: {value: "", required: true},
+            cbId: {value: "", required: true},
             remotecs: {value: "", type: "ocpp-remote-cs"},
-            ocppver: {value: "1.5s", required: true},
-            command: {value: "", required: false},
-            cmddata: {value: "", required: false},
-            log: {value: true, required: true },
+            ocppver: {value: "1.6j", required: true},
+            command: { value: "", required: false},
+            cmddata: { value: "", required: false},
+            log: { value: true, required: true },
             pathlog: {value: "", required: false}
             
         },
@@ -30,10 +31,7 @@
         outputs: 1,
         icon: "file.jpg",
         label: function() {
-            if (this.remotecs)
-                return this.name||RED.nodes.node(this.remotecs).label();
-            else
-                return this.name||"OCPP ChargePoint Request";
+                return this.name||this.cbId||"OCPP ChargePoint JSON";
         },
         oneditprepare: function() {
             toggleEnabled(document.getElementById('node-input-log'));            
@@ -47,21 +45,20 @@
 
 </script>
 
-<script type="text/x-red" data-template-name="CP Request SOAP">
+<script type="text/x-red" data-template-name="CP client JSON">
 
     <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Charge Box Identity" />
+        <label for="node-input-cbId"><i class="icon-tag">cbId</i></label>
+        <input type="text" id="node-input-cbId" placeholder="Unique Charge Box Identity" />
     </div>
     <div class="form-row">
         <label for="node-input-remotecs"><i class="icon-tag"></i> Cetral System</label>
         <input type="text" id="node-input-remotecs" placeholder="Setup" /> 
     </div>
     <div class="form-row">
-        <label for="node-input-ocppver"><i class="icon-cog"></i> OCPP Ver</label>
-        <select id="node-input-ocppver">
-            <option value="1.5s">1.5 SOAP</option>
-            <option value="1.6s">1.6 SOAP</option>
+        <label for="node-config-input-ocppver"><i class="icon-cog"></i> OCPP Ver</label>
+        <select id="node-config-input-ocppver">
+            <option value="1.6j">1.6 JSON</option>
         </select>
     </div>
     <div class="form-row">
@@ -102,35 +99,45 @@
             <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
         </div>
     </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Node Name" />
+    </div>
     
 
 </script>
 
-<script type="text/x-red" data-help-name="CP Request SOAP">
-    <p>Send Central System (CS) OCPP JSON requests messages to EVSEs (CP)</p>
-        
-        <h3>Configuration Settings</h3>
-        <dl>
-            <dt>Name:</dt>
-            <dd>The name shown on the workspace</dd>
-            <dt>Central System:</dt>
-            <dd>Choose, create, or modify a Central System Service(CS). NOTE: This needs to be a SOAP supported Central System (CS)</dd>
-            <dt>Command:</i></dt>
-            <dd>(Optional) Select an OCPP command to send if none is passed in via <code>msg.payload.command</code></dd>
-            <dt>Command Params:</dt>
-            <dd>(Optional) OCPP command data object to send if none is passed in via <code>msg.payload.data</code>. Must be JSON formatted</dd>
-            <!---
-            <dt>logging enabled</dt>
-            <dd>enables/disables logging for this node</dd>
-            <dt>Path</dt>
-            <dd>Path to file used for logging. Required if "logging enabled" is checked, otherwise logging will be disabled at runtime</dd>        
-            --->
-        </dl>
-    
+<script type="text/x-red" data-help-name="CP client JSON">
+    <p>Acts as an OCPP JSON ChargePoint</p>
+
+    <h3>Configuration Settings</h3>
+    <dl>
+        <dt>cbId</dt>
+        <dd>A unique name / identifier for this charge point</dd>
+        <dt>Central System</dt>
+        <dd>The URL of the Central System this charge point communicates with</dd>
+        <dt>OCPP Ver</dt>
+        <dd><i>*Future use<br/>Currently defaults to OCPP JSON 1.6 only</i></dd>
+        <dt>Command:</i></dt>
+        <dd>(Optional) Select an OCPP command to send if none is passed in via <code>msg.payload.command</code></dd>
+        <dt>Command Params:</dt>
+        <dd>(Optional) OCPP command data object to send if none is passed in via <code>msg.payload.data</code>. Must be JSON formatted</dd>
+        <dt>logging enabled</dt>
+        <dd>enables/disables logging for this node</dd>
+        <dt>Path</dt>
+        <dd>Path to file used for logging. Required if "logging enabled" is checked, otherwise logging will be disabled at runtime</dd>
+        <dt>Name:</dt>
+        <dd>The name shown on the workspace</dd>
+    </dl>
+
     <h3>Inputs</h3>
         <dl class="message-properties">
+            <dt><code>msg.payload.MessageId</code><i>optional</i> <span class="property-type">string</span></dt>
+            <dd>Unique identifier for the message. This should only be used for originating calls/request and not for responses. By default if this parameter is missing a unique identifier will be assigned by the node</dd>
+            <dt><code>msg.payload.msgType</code><i>optional</i> <span class="property-type">number</span></dt>
+            <dd>Defaults to 2 (CALL/Request). If the message being sent is a response, msgType must be included and set to 3 (CALLRESPONSE/response)<dd>
             <dt><code>msg.payload.command</code> <i>optional</i> <span class="property-type">string</span></dt>
-            <dd>OCPP "Central System" request command</dd>
+            <dd>OCPP request or response being send to the Central System</dd>
             <dt><code>msg.payload.data</code> <i>optional</i> <span class="property-type">object</span></dt>
             <dd>Object containing parameters for the command</dd>
         </dl>
@@ -140,14 +147,14 @@
             <dt>ocpp <span class="property-type">object</dt>
             <dd><code>msg.ocpp</code> objcet containing ocpp related information
                 <ul>
+                    <li><code>MessageId</code>: the unique message identifier</li>
+                    <li><msgType</code>: 2 = CALL/Request, 3= CALLRESPONSE/Reply/response</li>
                     <li><code>command</code>: the request command sent</li>
-                    <li><code>chargeBoxIdentity</code>: name identifying the charge box</li>
-                    <li><code>url</code>: URL of the targe EVSE request was sent to</li>
                     <li><code>data</code>: object containing the parameters passed to the EVSE for the request (if any)</li>
                 </ul>
             </dd>
             <dt>payload <span class="property-type">object</dt>
-            <dd><code>msg.payload</code> object containing response data sent back from the EVSE. Contents vary depending on the request command.
+            <dd><code>msg.payload</code> object containing response data sent back from the Central System. Contents vary depending on the request command.
             </dd>
         </dl>
     

@@ -13,7 +13,7 @@
 </style>
 
 <script type="text/javascript">
-    RED.nodes.registerType('ocpp request', {
+    RED.nodes.registerType('CS request SOAP', {
         category: 'OCPP',
         color: '#3FADB5',
         defaults: {
@@ -43,7 +43,7 @@
 </script>
 
 
-<script type="text/x-red" data-template-name="ocpp request">
+<script type="text/x-red" data-template-name="CS request SOAP">
 
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
@@ -103,8 +103,8 @@
 
 </script>
 
-<script type="text/x-red" data-help-name="ocpp request">
-    <p>Send OCPP request messages to EVSEs</p>
+<script type="text/x-red" data-help-name="CS request SOAP">
+    <p>Send Central System (CS) OCPP SOAP requests messages to EVSEs (CP)</p>
 
     <h3>Configuration Settings</h3>
     <dl>
@@ -149,4 +149,4 @@
             document.getElementById('node-input-pathlog').disabled = !(elem.checked);
             //document.getElementById('containerlog').hidden = !(elem.checked);
         }
-    </script>
+</script>

@@ -9,8 +9,11 @@ const events = require('events');
 const uuidv4 = require('uuid/v4');
 const xmlconvert = require('xml-js');
 const os = require('os');
+const expressws = require('express-ws');
 
 const EventEmitter = events.EventEmitter;
+const REQEVTPOSTFIX = '::REQUEST';
+
 
 let ee;
 
@@ -25,7 +28,7 @@ soap.Server.prototype.__envelope = soap.Server.prototype._envelope;
 
 soap.Server.prototype._envelope = function(body, includeTimestamp){
     //var xml = ""
-    var xml = this.__envelope(body, includeTimestamp);
+    let xml = this.__envelope(body, includeTimestamp);
     xml = xml.replace(' xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"', '');
     //xml = xml.replace(' xmlns:tns="urn://Ocpp/Cs/2012/06/"','');
     return xml.replace("http://schemas.xmlsoap.org/soap/envelope/","http://www.w3.org/2003/05/soap-envelope");
@@ -44,7 +47,7 @@ module.exports = function(RED) {
         // console.log('starting Server Node')
 
         RED.nodes.createNode(this, config);
-        var node = this;
+        const node = this;
 
         node.status({fill: "blue", shape: "dot", text: "Waiting..."})
 
@@ -59,9 +62,11 @@ module.exports = function(RED) {
         this.svcPort = config.port;
         this.svcPath15 = config.path15;
         this.svcPath16 = config.path16;
+        this.svcPath16j = config.path16j;
         this.enabled15 = config.enabled15;
         this.enabled16 = config.enabled16;
-        this.log = config.log;
+        this.enabled16j = config.enabled16j;
+        this.logging = config.log||false;
         this.pathlog = config.pathlog;
         this.name = config.name|| "OCPP Server Port " + config.port;
 
@@ -96,12 +101,12 @@ module.exports = function(RED) {
 
             // Add custom headers to the soap package
 
-            var soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
+            let soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
 
             addHeaders(ocppVer, headers, soapSvr);
 
 
-            var cbi = headers.chargeBoxIdentity||"Unknown";
+            let cbi = headers.chargeBoxIdentity||"Unknown";
 
 
             // let action = headers.Action.$value||headers.Action
@@ -151,8 +156,38 @@ module.exports = function(RED) {
         }, this);
 
 
-        var expressServer = express();
-        var soapServer15, soapServer16;
+        const expressServer = express();
+        const expressWs = expressws(expressServer);
+
+        let x = expressWs.getWss();        
+        // x.clients.forEach((ws) => {
+        //     let eventName = ws.upgradeReq.params.cbid + REQEVTPOSTFIX;
+        //     if (ee.eventNames().indexOf(eventName) != -1){
+        //         console.log( `Event ${eventName} already exists`);                
+        //     }else {
+        //         console.log( `Need to add event ${eventName}`);
+        //     }            
+        // });
+        let wsrequest;
+
+        x.on('connection', function connection(ws){
+            // const ip = req.connection.remoteAddress;
+            // console.log(`IP Address = ${ip}`);
+            // console.log('im here....');
+            // console.log(ws.upgradeReq.params.cbid);
+            if (ws.upgradeReq.params && ws.upgradeReq.params.cbid){
+                let eventName = ws.upgradeReq.params.cbid + REQEVTPOSTFIX;
+                if (ee.eventNames().indexOf(eventName) == -1){
+                    //console.log( `Need to add event ${eventName}`);
+                    //ee.on(eventname, wsrequest);
+                }            
+
+            }
+
+        });
+
+
+        let soapServer15, soapServer16;
 
         // Insert middleware into the flow...
         // WHY: Because:
@@ -173,8 +208,8 @@ module.exports = function(RED) {
             if (req.method == "POST" && typeof req.headers['content-type'] !== "undefined") {
                 if (req.headers['content-type'].toLowerCase().includes('action')){
                     // console.log(req.headers)
-                    var ctstr = req.headers['content-type'];
-                    var ctarr = ctstr.split(";");
+                    let ctstr = req.headers['content-type'];
+                    let ctarr = ctstr.split(";");
                     // console.log("before: ", ctarr);
                     ctarr = ctarr.filter(function(ctitem){
                         return ! ctitem.toLowerCase().includes('action')
@@ -186,59 +221,174 @@ module.exports = function(RED) {
             next();
         });
 
+
+
         const server = expressServer.listen(this.svcPort, function(){
-            var log_file;
-            if (node.pathlog == "") node.log = false;
-            if (node.log){
-                // console.log('Server Opening Log File: ', node.pathlog);
-                log_file = fs.createWriteStream(node.pathlog, {flags : 'w+'});
-                log_file.on('error', (err) => { node.error('Log file Error: (' + node.name +') ' + err); log_file.end(); node.log = false;})
-            }
+            let log_file;
+            if (node.pathlog == "") node.logging = false;
             if (node.enabled15){
                 soapServer15 = soap.listen(expressServer,{ path: node.svcPath15, services: ocppService15, xml: wsdl15} );
-                if (node.log){
-                    soapServer15.log = function(type, data) {
-                        if (node.log){  // only log if no errors w/ log file
-                            var date = new Date().toLocaleString();
-                            log_file.write( date
-                                        + '\t node: ' + node.name
-                                        + '\t type: ' + type
-                                        + '\t' + ' data: ' + data
-                                        + os.EOL);
-                        }
-                        else { // this stops attempting to log if there was an error with the log file.
-                            soapServer15.log = "";
-                        }
-                    }
-                }
-
+                soapServer15.log = (node.logging) ? logData : null;
             }
+
             if (node.enabled16){
                 soapServer16 = soap.listen(expressServer,{ path: node.svcPath16, services: ocppService16, xml: wsdl16} );
-
-                if (node.log){
-                    soapServer16.log = function(type, data) {
-                        if (node.log){  // only log if no errors w/ log file
-                            var date = new Date().toLocaleString();
-                            log_file.write( date
-                                + '\t node: ' + node.name
-                                + '\t type: ' + type
-                                + '\t' + ' data: ' + data
-                                + os.EOL);
-                        }
-                        else { // this stops attempting to log if there was an error with the log file.
-                            soapServer16.log = "";
-                        }
-                    }
-                }
+                soapServer16.log = (node.logging) ? logData : null;
             }
+            if (node.enabled16j){
+                const wspath = `${node.svcPath16j}/:cbid`;
+                logData('info', `Ready to recieve websocket requests on ${wspath}`);
+                //console.log(`ws path = ${wspath}`);
+                expressServer.ws(wspath, function(ws, req) {
+                    const CALL = 2;
+                    const CALLRESULT = 3;
+                    const CALLERROR = 4;
+                    const msgTypeStr = ['received', 'replied', 'error'];
+    
+                    const msgType = 0;
+                    const msgId  = 1;
+                    const msgAction = 2;
+                    const msgCallPayload = 3;
+                    const msgResPayload = 2;
+                
+                    let msg = {};
+                    msg.ocpp = {};
+                    msg.payload = {};
+                    msg.payload.data = {};
+    
+                    msg.ocpp.ocppVersion = "1.6j";
+                    msg.ocpp.chargeBoxIdentity = req.params.cbid;
+    
+                    // console.log('WebSocket to ocppj, ChargePointID =', req.params.cbid);
+                    node.status({fill: "green", shape: "dot", text: `Connected on ${node.svcPath16j}/${req.params.cbid}`})                
+                        
+                    let eventname = req.params.cbid + REQEVTPOSTFIX;
+                    //console.log('Connecting to: ', req.params.cbid);
+                    logData('info', `Websocket connecting to chargebox: ${req.params.cbid}`);
+                    
+    
+                    wsrequest = (data, cb) => {
+                        let err;
+                        let request = [];
+            
+                        request[msgType] = CALL;
+                        request[msgId] = data.payload.MessageId||uuidv4();
+                        request[msgAction] = data.payload.command;
+                        request[msgCallPayload] = data.payload.data||{};
 
+                        logData('request', JSON.stringify(request).replace(/,/g,", "));                        
+            
+                        ee.once(request[msgId], (retData) => {
+                            cb(err, retData);
+                        });
+            
+                        ws.send(JSON.stringify(request));
+                        
+                    }
+            
+    
+                    ee.on(eventname, wsrequest);
+    
+                    ws.on('open', function() {
+                        //console.log('Opening a WS')
+                    } );
+                    
+                    ws.on('close', function(code, reason){
+                        //console.log(`closing emmiter: ${eventname}, Code: ${code}, Reason ${reason}`);
+                        
+                        ee.removeAllListeners(eventname);
+                    });
+    
+                    ws.on('error', function(err){
+                        node.log("Websocket Error: " + err);
+                        //console.log("Websocket Error:",err);
+                    });
+    
+                    ws.on('message', function(msgIn){
+    
+    
+                        let response = [];
+    
+                        let id = uuidv4();
+                        
+                        let currTime = new Date().toISOString();
+    
+                        let msgParsed;
+    
+    
+                        let eventName = ws.upgradeReq.params.cbid + REQEVTPOSTFIX;
+                        if (ee.eventNames().indexOf(eventName) == -1){
+                            // console.log( `Need to add event ${eventName}`);
+                            ee.on(eventname, wsrequest);
+                        }                    
+    
+                        if (msgIn[0] != '['){
+                            msgParsed = JSON.parse( '[' + msgIn + ']');
+                        }
+                        else{
+                            msgParsed = JSON.parse( msgIn );
+                        }
+
+                        logData(msgTypeStr[msgParsed[msgType] - CALL], msgIn);
+                    
+                        if (msgParsed[msgType] == CALL){
+                            msg.msgId = id;
+                            msg.ocpp.MessageId = msgParsed[msgId];
+                            msg.ocpp.msgType = CALL;
+                            msg.ocpp.command =  msgParsed[msgAction];
+                            msg.payload.command = msgParsed[msgAction];
+                            msg.payload.data = msgParsed[msgCallPayload];
+        
+    
+                            let to = setTimeout( function(id){
+                                // node.log("kill:" + id);
+                                if (ee.listenerCount(id) > 0){
+                                    let evList = ee.listeners(id);
+                                    ee.removeListener(id,evList[0]);
+                                }
+                            }, 120 * 1000, id);
+                
+                            // This makes the response async so that we pass the responsibility onto the response node
+                            ee.once(id, function(returnMsg){
+                                clearTimeout(to);
+                                response[msgType] = CALLRESULT;
+                                response[msgId] = msgParsed[msgId];
+                                response[msgResPayload] = returnMsg;                            
+
+                                logData(msgTypeStr[response[msgType] - CALL], JSON.stringify(response).replace(/,/g,", ") );
+        
+                                ws.send(JSON.stringify(response));
+                                
+                            });
+                
+                            node.send(msg);
+                        }
+                        else if (msgParsed[msgType] == CALLRESULT){
+                            msg.msgId = msgParsed[msgId];
+                            msg.ocpp.MessageId = msgParsed[msgId];
+                            msg.ocpp.msgType = CALLRESULT;
+                            msg.payload.data = msgParsed[msgResPayload];
+                    
+                            ee.emit(msg.msgId, msg);
+                            
+                        }
+    
+                    });
+                });
+            }
+    
         });
 
         this.on('close', function(){
              // console.log('About to stop the server...');
             ee.removeAllListeners();
-
+            //console.log(expressWs.getWss());
+            expressWs.getWss().clients.forEach(function(ws){
+                //console.log('closing a wss');
+                if (ws.readyState == 1){
+                    ws.close(1012, 'Restarting Server');                    
+                }
+            });
             server.close();
             this.status({fill: "grey", shape: "dot", text: "stopped"})
             // console.log('Server closed?...');
@@ -280,7 +430,7 @@ module.exports = function(RED) {
             soapServer.addSoapHeader(cbid);
         }
 
-        // Creates the message any payload for sending out into the flow and sends it.
+        // Creates the message and payload for sending out into the flow and sends it.
         const sendMsg = function( ocppVer, command, msgId, args, headers){
 
             // msg {
@@ -304,10 +454,12 @@ module.exports = function(RED) {
             let msg = {};
             msg.ocpp = {};
             msg.payload = {};
+            msg.payload.data = {};
             msg.msgId = msgId;
 
 
             msg.ocpp.command = command;
+            msg.payload.command = command;
 
             // idenitfy which chargebox the message originated from
             msg.ocpp.chargeBoxIdentity = headers.chargeBoxIdentity||"Unknown";
@@ -334,6 +486,28 @@ module.exports = function(RED) {
             node.send(msg);
         }
 
+        function logData(type, data) {
+            if (node.logging === true){  // only log if no errors w/ log file
+                // set a timestamp for the logged item
+                let date = new Date().toLocaleString();
+                // create the logged info from a template
+                // let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data} ${os.EOL}`;
+                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data.replace(/[\n\r]/g,"")} ${os.EOL}`;
+                
+
+                // create/append the log info to the file
+                fs.appendFile(node.pathlog,logInfo,(err) => {
+                    if (err){
+                        node.error(`Error writing to log file: ${err}`);
+                        // If something went wrong then turn off logging
+                        node.logging = false;    
+                        if(this.log) this.log = null;
+                    }
+                });
+            }
+        }
+
+
     }
 
     // Create a "resonse" node for returning messages to soap
@@ -346,19 +520,29 @@ module.exports = function(RED) {
         node.status({fill: "blue", shape: "dot", text: "Waiting..."})
 
         this.on('input', function(msg) {
-            var x = 0;
+            // var x = 0;
             if(msg.msgId){
                 // we simply return the payload of the message and emit a node message based on the unique
                 // id we created when we recieved the soap event.
                 // console.log("emit msg...");
-                var command = msg.ocpp.command;
-                    var x = ee.emit(msg.msgId,msg.payload);
-                    if (x){
-                        node.status({fill: "green", shape: "ring", text: command + " sent" })
-                    }else{
-                        node.status({fill: "red", shape: "ring", text: "message failed"})
-                    }
+                let command = msg.ocpp.command;
 
+                let x = ee.emit(msg.msgId,msg.payload);
+
+                if (x){
+                    node.status({fill: "green", shape: "ring", text: command + " sent" })
+                }else{
+                    node.status({fill: "red", shape: "ring", text: "message failed"})
+                }
+                // let eventname = msg.ocpp.chargeBoxIdentity + '_REQUEST';
+                // console.log('sending event:', eventname);
+                // var y = ee.emit(eventname, msg.ocpp.command, function(rtnData){
+                //     console.log('got this back: ', rtnData);
+                // });
+                // if (y)
+                //     console.log('got y back:', y);
+                // else
+                //     console.log('no y return');
             }
             else{
                 node.log('ERROR: missing msgId for return target');
@@ -379,7 +563,7 @@ module.exports = function(RED) {
         // console.log('starting Server Node')
 
         RED.nodes.createNode(this, config);
-        var node = this;
+        let node = this;
 
         node.status({fill: "blue", shape: "dot", text: "Waiting..."})
 
@@ -394,10 +578,11 @@ module.exports = function(RED) {
         this.svcPath16 = config.path16;
         this.enabled15 = config.enabled15;
         this.enabled16 = config.enabled16;
-        this.log = config.log;
+        this.logging = config.log||false;
         this.pathlog = config.pathlog;
         this.name = config.name|| "OCPP CP Server Port " + config.port;
 
+        
         if (!this.enabled16 && !this.enabled15){
             node.status({fill: "red", shape: "dot", text: "Disabled"})
         }
@@ -430,12 +615,12 @@ module.exports = function(RED) {
             // Add custom headers to the soap package
 
 
-            var soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
+            let soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
 
             addHeaders(headers, soapSvr);
 
 
-            var cbi = headers.chargeBoxIdentity||"Unknown";
+            let cbi = headers.chargeBoxIdentity||"Unknown";
             // let action = headers.Action.$value||headers.Action
             let action = command;
 
@@ -483,8 +668,8 @@ module.exports = function(RED) {
         }, this);
 
 
-        var expressServer = express();
-        var soapServer15, soapServer16;
+        let expressServer = express();
+        let soapServer15, soapServer16;
 
         // Insert middleware into the flow...
         // WHY: Because:
@@ -505,8 +690,8 @@ module.exports = function(RED) {
             if (req.method == "POST" && typeof req.headers['content-type'] !== "undefined") {
                 if (req.headers['content-type'].toLowerCase().includes('action')){
                     // console.log(req.headers)
-                    var ctstr = req.headers['content-type'];
-                    var ctarr = ctstr.split(";");
+                    let ctstr = req.headers['content-type'];
+                    let ctarr = ctstr.split(";");
                     // console.log("before: ", ctarr);
                     ctarr = ctarr.filter(function(ctitem){
                         return ! ctitem.toLowerCase().includes('action')
@@ -519,50 +704,16 @@ module.exports = function(RED) {
         });
 
         const server = expressServer.listen(this.svcPort, function(){
-            var log_file;
-            if (node.pathlog == "") node.log = false;
-            if (node.log){
-                log_file = fs.createWriteStream(node.pathlog, {flags : 'w+'});
-                log_file.on('error', (err) => { node.error('Log file Error: (' + node.name +') ' + err); log_file.end(); node.log = false;})
-            }
+            let log_file;
+            if (node.pathlog == "") node.logging = false;
 
             if (node.enabled15){
                 soapServer15 = soap.listen(expressServer,{ path: node.svcPath15, services: ocppService15, xml: wsdl15} );
-                if (node.log){
-                    soapServer15.log = function(type, data) {
-                        if (node.log){  // only log if no errors w/ log file
-                            var date = new Date().toLocaleString();
-                            log_file.write( date
-                                        + '\t node: ' + node.name
-                                        + '\t type: ' + type
-                                        + '\t' + ' data: ' + data
-                                        + os.EOL);
-                        }
-                        else { // this stops attempting to log if there was an error with the log file.
-                            soapServer15.log = "";
-                        }
-                    }
-                }
-
+                soapServer15.log = (node.logging) ? logData : null;
             }
-            if (node.enabled15){
+            if (node.enabled16){
                 soapServer16 = soap.listen(expressServer,{ path: node.svcPath16, services: ocppService16, xml: wsdl16} );
-                if (node.log){
-                    soapServer16.log = function(type, data) {
-                        if (node.log){  // only log if no errors w/ log file
-                            var date = new Date().toLocaleString();
-                            log_file.write( date
-                                + '\t node: ' + node.name
-                                + '\t type: ' + type
-                                + '\t' + ' data: ' + data
-                                + os.EOL);
-                        }
-                        else { // this stops attempting to log if there was an error with the log file.
-                            soapServer16.log = "";
-                        }
-                    }
-                }
-
+                soapServer16.log = (node.logging) ? logData : null;
             }
 
         });
@@ -626,10 +777,12 @@ module.exports = function(RED) {
             let msg = {};
             msg.ocpp = {};
             msg.payload = {};
+            msg.payload.data = {};
             msg.msgId = msgId;
             msg.ee = ee;
 
             msg.ocpp.command = command;
+            msg.payload.command = command;
 
             // idenitfy which chargebox the message originated from
             msg.ocpp.chargeBoxIdentity = headers.chargeBoxIdentity||"Unknown";
@@ -656,9 +809,81 @@ module.exports = function(RED) {
             node.send(msg);
         }
 
+        function logData(type, data) {
+            if (node.logging === true){  // only log if no errors w/ log file
+                // set a timestamp for the logged item
+                let date = new Date().toLocaleString();
+                // create the logged info from a template
+                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data.replace(/[\n\r]/g,"")} ${os.EOL}`;
+
+                // create/append the log info to the file
+                fs.appendFile(node.pathlog,logInfo,(err) => {
+                    if (err){
+                        node.error(`Error writing to log file: ${err}`);
+                        // If something went wrong then turn off logging
+                        node.logging = false;    
+                        if(this.log) this.log = null;
+                    }
+                });
+            }
+        }
+        
     }
 
-    RED.nodes.registerType("ocpp server",OCPPServerNode);
-    RED.nodes.registerType("ocpp chargepoint server",OCPPChargePointServerNode);
-    RED.nodes.registerType("ocpp response", OCPPResponseNode);
+    function OCPPRequestJNode(config) {
+        RED.nodes.createNode(this, config);
+ 
+        const node = this;
+
+        this.remotecb = RED.nodes.getNode(config.remotecb);
+
+        this.cbId = this.remotecb.cbId;
+        this.name = config.name||"Request JSON";
+        // this.command = config.command;
+        // this.cmddata = config.cmddata;
+        // this.log = config.log;
+        this.log = config.log;
+        this.pathlog = config.pathlog;
+
+        this.on('input', function(msg) {
+
+
+            msg.ocpp = {};
+            msg.ocpp.command = msg.payload.command // ||node.command;
+            msg.ocpp.chargeBoxIdentity = msg.payload.cbId||node.cbId;
+            msg.ocpp.data = msg.payload.data // ||JSON.parse(node.cmddata);
+            if (msg.ocpp.MessageId){
+                msg.msgId = msg.payload.MessageId;
+            }
+            let eventname = msg.ocpp.chargeBoxIdentity + REQEVTPOSTFIX;
+
+            //console.log(ee.eventNames());
+
+            //console.log(`${os.EOL} SENDING TO ${eventname} ${os.EOL}`)
+            // console.log(JSON.stringify(msg));
+            ee.emit(eventname, msg, function(err, response){
+
+                if (err) {
+                    // report any errors
+                    node.error(err);
+                    msg.payload = err;
+                    node.send(msg);
+                }
+                else {
+                    // put the response to the request in the message payload and send it out the flow
+                    //console.log(response);
+                    msg.ocpp = response.ocpp;
+                    msg.payload.data = response.payload.data;
+                    node.send(msg);
+                }
+
+            });
+ 
+        });
+    }
+    
+    RED.nodes.registerType("CS server",OCPPServerNode);
+    RED.nodes.registerType("CP server SOAP",OCPPChargePointServerNode);
+    RED.nodes.registerType("server response", OCPPResponseNode);
+    RED.nodes.registerType("CS request JSON", OCPPRequestJNode);
 }
