@@ -13,16 +13,16 @@
 </style>
 
 <script type="text/javascript">
-    RED.nodes.registerType('ocpp request cp', {
+    RED.nodes.registerType('CP Request SOAP', {
         category: 'OCPP',
         color: '#3FADB5',
         defaults: {
             name: {value: "", required: true},
             remotecs: {value: "", type: "ocpp-remote-cs"},
             ocppver: {value: "1.5s", required: true},
-            command: { value: "", required: false},
-            cmddata: { value: "", required: false},
-            log: { value: true, required: true },
+            command: {value: "", required: false},
+            cmddata: {value: "", required: false},
+            log: {value: true, required: true },
             pathlog: {value: "", required: false}
             
         },
@@ -47,7 +47,7 @@
 
 </script>
 
-<script type="text/x-red" data-template-name="ocpp request cp">
+<script type="text/x-red" data-template-name="CP Request SOAP">
 
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
@@ -58,8 +58,8 @@
         <input type="text" id="node-input-remotecs" placeholder="Setup" /> 
     </div>
     <div class="form-row">
-        <label for="node-config-input-ocppver"><i class="icon-cog"></i> OCPP Ver</label>
-        <select id="node-config-input-ocppver">
+        <label for="node-input-ocppver"><i class="icon-cog"></i> OCPP Ver</label>
+        <select id="node-input-ocppver">
             <option value="1.5s">1.5 SOAP</option>
             <option value="1.6s">1.6 SOAP</option>
         </select>
@@ -106,21 +106,27 @@
 
 </script>
 
-<script type="text/x-red" data-help-name="ocpp request cp">
-    <p>Send OCPP request messages to EVSEs</p>
-
-    <h3>Configuration Settings</h3>
-    <dl>
-        <dt>EVSE:</dt>
-        <dd>Choose, create, or modify an ESVE</dd>
-        <dt>Command:</i></dt>
-        <dd>(Optional) Select an OCPP command to send if none is passed in via <code>msg.payload.command</code></dd>
-        <dt>Command Params:</dt>
-        <dd>(Optional) OCPP command data object to send if none is passed in via <code>msg.payload.data</code>. Must be JSON formatted</dd>
-        <dt>Name:</dt>
-        <dd>The name shown on the workspace</dd>
-    </dl>
-
+<script type="text/x-red" data-help-name="CP Request SOAP">
+    <p>Send Central System (CS) OCPP JSON requests messages to EVSEs (CP)</p>
+        
+        <h3>Configuration Settings</h3>
+        <dl>
+            <dt>Name:</dt>
+            <dd>The name shown on the workspace</dd>
+            <dt>Central System:</dt>
+            <dd>Choose, create, or modify a Central System Service(CS). NOTE: This needs to be a SOAP supported Central System (CS)</dd>
+            <dt>Command:</i></dt>
+            <dd>(Optional) Select an OCPP command to send if none is passed in via <code>msg.payload.command</code></dd>
+            <dt>Command Params:</dt>
+            <dd>(Optional) OCPP command data object to send if none is passed in via <code>msg.payload.data</code>. Must be JSON formatted</dd>
+            <!---
+            <dt>logging enabled</dt>
+            <dd>enables/disables logging for this node</dd>
+            <dt>Path</dt>
+            <dd>Path to file used for logging. Required if "logging enabled" is checked, otherwise logging will be disabled at runtime</dd>        
+            --->
+        </dl>
+    
     <h3>Inputs</h3>
         <dl class="message-properties">
             <dt><code>msg.payload.command</code> <i>optional</i> <span class="property-type">string</span></dt>

@@ -13,12 +13,12 @@ module.exports = function(RED) {
 
         this.url = this.remotecs.url;
         // this.cbId = this.remotecs.cbId;
-        this.cbId = this.name;
-        this.ocppVer = this.ocppver;
+        this.cbId = config.name;
+        this.ocppVer = config.ocppver;
         this.name = config.name||this.remotecs.name;
         this.command = config.command;
         this.cmddata = config.cmddata;
-        this.log = config.log;
+        this.logging = config.log;
         this.pathlog = config.pathlog;
 
         this.on('input', function(msg) {
@@ -41,7 +41,21 @@ module.exports = function(RED) {
                     msg.ocpp.chargeBoxIdentity = cbId;
                     msg.ocpp.url = node.url;
                     msg.ocpp.ocppVer = node.ocppVer;
-                    msg.ocpp.data = msg.payload.data||JSON.parse(node.cmddata);
+                    let cmddata;
+                    if (node.cmddata){
+                        cmddata = JSON.parse(node.cmddata);
+                    }
+                    msg.ocpp.data = msg.payload.data||cmddata;
+
+                    if (!msg.ocpp.command){
+                        node.error('Missing Command in SOAP request message');
+                        return;
+                    }
+                    else if (!msg.ocpp.data){
+                        node.error('Missing Data in SOAP request message');
+                        return;
+                    }
+                    
                     
                     // set up or target Central System
                     client.setEndpoint(msg.ocpp.url);
@@ -61,42 +75,18 @@ module.exports = function(RED) {
 
                     // Setup logging
                     var log_file;
-                    if (node.pathlog == "") node.log = false;
-                    if (node.log){
-                        //console.log('Request Opening Log File: ', node.pathlog);
-                        
-                        log_file = fs.createWriteStream(node.pathlog, {flags : 'w+'});
-                        log_file.on('error', (err) => { node.error('Log file Error: (' + node.name +') ' + err); log_file.end(); node.log = false;})                                        
-                    }        
-                    if (node.log){
+                    if (node.pathlog == "") node.logging = false;
+                    if (node.logging){
                         client.on('request', function(xmlSoap, xchgId){
-                            var date = new Date().toLocaleString();
-                            log_file.write(date 
-                                        + '\t' + 'node: ' + node.name 
-                                        + '\t' + 'type: request' 
-                                        + '\t' + 'msgId: ' + xchgId
-                                        + '\t' + xmlSoap
-                                        + os.EOL);
+                            logData( 'request', xmlSoap);
                         });
     
                         client.on('response', function(xmlSoap, fullinfo, xchgId){
-                            var date = new Date().toLocaleString();
-                            log_file.write(date 
-                                + '\t' + 'node: ' + node.name 
-                                + '\t' + 'type: response' 
-                                + '\t' + 'msgId: ' + xchgId
-                                + '\t' + xmlSoap
-                                + os.EOL);
+                            logData( 'replied', xmlSoap);
                         });
     
                         client.on('soapError', function(err, xchgId){
-                            var date = new Date().toLocaleString();
-                            log_file.write(date 
-                                + '\t' + 'node: ' + node.name 
-                                + '\t' + 'type: error' 
-                                + '\t' + 'msgId: ' + xchgId
-                                + '\t' + err
-                                + os.EOL);
+                            logData( 'error', err)
                         });
         
                     }
@@ -112,7 +102,7 @@ module.exports = function(RED) {
                         }
                         else {
                             // put the response to the request in the message payload and send it out the flow
-                            msg.payload = response;
+                            msg.payload.data = response;
                             node.send(msg);
                         }
                     });
@@ -121,7 +111,27 @@ module.exports = function(RED) {
             });
  
         });
+
+        function logData(type, data) {
+            if (node.logging === true){  // only log if no errors w/ log file
+                // set a timestamp for the logged item
+                let date = new Date().toLocaleString();
+                // create the logged info from a template
+                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data.replace(/[\n\r]/g,"")} ${os.EOL}`;
+
+                // create/append the log info to the file
+                fs.appendFile(node.pathlog,logInfo,(err) => {
+                    if (err){
+                        node.error(`Error writing to log file: ${err}`);
+                        // If something went wrong then turn off logging
+                        node.logging = false;    
+                        if(this.log) this.log = null;
+                    }
+                });
+            }
+        }
+        
     }
     // register our node
-    RED.nodes.registerType("ocpp request cp",OcppRequestCPNode);
+    RED.nodes.registerType("CP Request SOAP",OcppRequestCPNode);
 }
