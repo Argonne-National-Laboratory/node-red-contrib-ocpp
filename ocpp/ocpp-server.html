@@ -19,11 +19,11 @@
             name: {value: "", required: false},
             port: {value: "", required: true, validate: RED.validators.number()},
             enabled15: { value: false, required: true},
-            path15: {value: "", required: true},
+            path15: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path16.toLowerCase() && v.toLowerCase() != this.path16j.toLowerCase();}},
             enabled16: { value: true, required: true},
-            path16: {value: "", required: true, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase();}},
+            path16: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase() && v.toLowerCase() != this.path16j.toLowerCase();}},
             enabled16j: { value: true, required: true},
-            path16j: {value: "", required: true, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase();}},
+            path16j: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase() && v.toLowerCase() != this.path16.toLowerCase();}},
             log: { value: true, required: true },
             pathlog: {value: "", required: false}
         },
@@ -38,10 +38,44 @@
             return this.name||tmpName;
         },
         oneditprepare: function() {
-            toggleEnabled(document.getElementById('node-input-enabled16'));            
-            toggleEnabled(document.getElementById('node-input-enabled15'));            
-            toggleEnabled(document.getElementById('node-input-enabled16j'));            
-            toggleEnabled(document.getElementById('node-input-log'));            
+
+            var cblist = [
+                { 
+                    cb: "#node-input-enabled15",
+                    cont: "#container15"
+                },
+                { 
+                    cb: "#node-input-enabled16",
+                    cont: "#container16"
+                },
+                { 
+                    cb: "#node-input-enabled16j",
+                    cont: "#container16j"
+                },
+                { 
+                    cb: "#node-input-log",
+                    cont: "#containerlog"
+                },
+            ]
+
+            function updateHideContainer(checkbox,container){
+                if ($(checkbox).is(':checked')){
+                    $(container).show();
+                }
+                else{
+                    $(container).hide();
+
+                }
+            }
+
+            cblist.forEach(x => {
+                updateHideContainer(x.cb,x.cont);
+                $(x.cb).on('click', function(){ 
+                    updateHideContainer(x.cb,x.cont);
+                });
+            });
+
+            // toggleEnabled(document.getElementById('node-input-log'));            
         },
         oneditsave: function() {
             var e16 = document.getElementById('node-input-enabled16').checked;            
