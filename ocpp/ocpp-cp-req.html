@@ -22,7 +22,7 @@
             ocppver: {value: "1.5s", required: true},
             command: {value: "", required: false},
             cmddata: {value: "", required: false},
-            log: {value: true, required: true },
+            log: {value: false, required: true },
             pathlog: {value: "", required: false}
             
         },
@@ -33,10 +33,32 @@
             if (this.remotecs)
                 return this.name||RED.nodes.node(this.remotecs).label();
             else
-                return this.name||"OCPP ChargePoint Request";
+                return this.name||"OCPP CP SOAP Request";
         },
         oneditprepare: function() {
-            toggleEnabled(document.getElementById('node-input-log'));            
+            var cblist = [
+                { 
+                    cb: "#node-input-log",
+                    cont: "#containerlog"
+                },
+            ]
+
+            function updateHideContainer(checkbox,container){
+                if ($(checkbox).is(':checked')){
+                    $(container).show();
+                }
+                else{
+                    $(container).hide();
+
+                }
+            }
+
+            cblist.forEach(x => {
+                updateHideContainer(x.cb,x.cont);
+                $(x.cb).on('click', function(){ 
+                    updateHideContainer(x.cb,x.cont);
+                });
+            });
         }
 
     });
@@ -151,10 +173,4 @@
             </dd>
         </dl>
     
-</script>
-<script>    
-    function toggleEnabled(elem){    
-        document.getElementById('node-input-pathlog').disabled = !(elem.checked);
-        //document.getElementById('containerlog').hidden = !(elem.checked);
-    }
 </script>

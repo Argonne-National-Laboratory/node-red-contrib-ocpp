@@ -501,7 +501,7 @@ module.exports = function(RED) {
                         node.error(`Error writing to log file: ${err}`);
                         // If something went wrong then turn off logging
                         node.logging = false;    
-                        if(this.log) this.log = null;
+                        if(node.log) node.log = null;
                     }
                 });
             }
@@ -703,7 +703,7 @@ module.exports = function(RED) {
             next();
         });
 
-        const server = expressServer.listen(this.svcPort, function(){
+        const server = expressServer.listen(node.svcPort, function(){
             let log_file;
             if (node.pathlog == "") node.logging = false;
 
@@ -822,7 +822,7 @@ module.exports = function(RED) {
                         node.error(`Error writing to log file: ${err}`);
                         // If something went wrong then turn off logging
                         node.logging = false;    
-                        if(this.log) this.log = null;
+                        if(node.log) node.log = null;
                     }
                 });
             }
@@ -839,9 +839,6 @@ module.exports = function(RED) {
 
         this.cbId = this.remotecb.cbId;
         this.name = config.name||"Request JSON";
-        // this.command = config.command;
-        // this.cmddata = config.cmddata;
-        // this.log = config.log;
         this.log = config.log;
         this.pathlog = config.pathlog;
 

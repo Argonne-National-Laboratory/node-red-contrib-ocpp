@@ -102,7 +102,8 @@ module.exports = function(RED) {
                     // node.log("kill:" + id);
                     if (ee.listenerCount(id) > 0) {
                         let evList = ee.listeners(id);
-                        ee.removeListener(id, evList[0]);
+                        let x = evList[0];
+                        ee.removeListener(id, x);
                     }
                 }, 120 * 1000, id);
 
@@ -198,7 +199,7 @@ module.exports = function(RED) {
                         node.error(`Error writing to log file: ${err}`);
                         // If something went wrong then turn off logging
                         node.logging = false;    
-                        if(this.log) this.log = null;
+                        if(node.log) node.log = null;
                     }
                 });
             }

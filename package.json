@@ -4,7 +4,8 @@
   "description": "A set of nodes to communicate via OCPP to a compatible charge box or central system",
   "main": "ocpp-req.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "mon": "nodemon -x node-red"
   },
   "engines": {
     "node": ">=6.5.0"
