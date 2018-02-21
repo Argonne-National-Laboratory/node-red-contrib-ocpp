@@ -3,7 +3,7 @@ node-red-contrib-ocpp-cs-cp
 
 
 [Node-Red][4] nodes for communicating with the EVSE Charge Points and Central Systems via the [Open Charge Point Protocol][6] (hereafter OCPP). These node-red nodes
-allow you to take on the role of a Central System.  
+allow you to take on the role of a Central System (CS) or Charge Point (CP).  
 
 Based on the [OCPP 1.5][6] and [OCPP 1.6][8] secifications utilizing the Simple Object Access Protocol (hereafter SOAP) and JavaScript Object Notation (hearafer JSON) protocols.
 
@@ -31,6 +31,7 @@ The package currently requires [Node.js 6.5][1] or higher.
 
 _(nodes that begin with CS refer to those that emulate a Central System. Those with CP refer to those that emulate a Charge Point/EVSE)_
 
+---
 ## CS request SOAP
 This node allows you to make requests to an EVSE charge point and return a message with the response from that request. The targeted EVSE charge point must support either 1.5 or 1.6 SOAP (this node does not support JSON) It is flexible in that you can either set up a default command and/or data to send when you configure the node, or you may pass in 
 that information to override the defaults via a message payload.
@@ -115,7 +116,7 @@ Example return message from a OCPP 1.5 SOAP
         "command":"Reset",
         "MessageId":"f58ec0fb-b6fd-48a3-9a0c-2e0cba143388",
         "chargeBoxIdentity":"Chargion6D94",
-        "url":"http://130.202.169.51:8000/ws/chargePoint",
+        "url":"http://204.188.169.51:8080/chargePoint",
         "ocppVer":"1.5s",
         "data":{
             "type":"Soft"
@@ -132,11 +133,13 @@ Example return message from a OCPP 1.5 SOAP
 
 The payload portion varies depending on the command and EVSE charge point vendor specifications.
 
+---
 ## CP request SOAP
 This node is used to emulate a EVSE charge point station and is capable of making requests to a Central System service that support either protocol 1.5 or 1.6 SOAP. It's behavior is similar to that of the *[CS request SOAP](#cs-request-soap)* node.
 
 To emulate a EVSE charge point station that utilizes OCPP 1.6 JSON, use the *[CP client JSON](#cp-client-json)* node.
 
+---
 ## CS server
 The ocpp-server node will listen for incoming reqests coming from the EVSE charge points that are targeting its address. It is capable of recieving messages via 1.5 SOAP, 1.6 SOAP, and 1.6 JSON if the protocols are enabled in its configuration.
 When the ocpp-server node receives a message, it will output a message in the following format:
@@ -176,6 +179,7 @@ The incoming messages require a response (sent through the *[server response](#s
 a resonable amount of time. The ocpp-server node will cancle any outstanding responses after a 2 minute time period. The EVSE side 
 may timeout awaiting a response even sooner than that depending on their configuration.
 
+---
 ## server response
 To return a response to an incoming EVSE charge point request, you need to pass your message to the *[server response](#server-response)* node. Since the message 
 coming out of the ocpp-server node contains information about how to return the response, the message itself should be passed as is through
@@ -193,16 +197,20 @@ For example, to accept a *BootNotification* request, set the payload of the resp
 
 (The message being passed from the server contains a unique identifier contained in msg.msgID. This needs to be present in the response message in order for the message to be returned to the proper request)
 
+---
 ## CP server SOAP
 This node emulates an EVSE charge point station server that accepts and responds to OCPP 1.5 or 1.6 SOAP messages being sent from a a Central System service. Setup and behavior are similar to that of the *[CS server](#cs-server)*. Use this node in conjunction with a *[server response](#server-response)* node to pass responses to requests back to a Central System. 
 
 _Unlike the *[CS Server](#cs-server)* this node does not incorporate or support multiple protocols running concurrently, nore does it support JSON. To emulate an EVSE charge point that supports JSON, use the *[CP client JSON](#cp-client-json)* node._
 
+---
 ## CP client JSON
 Use this node to emulate an EVSE charge point station that supports OCPP protocol 1.6 JSON. Since the OCPP JSON implementation utilizes web sockets, this node makes the initial connection to the defined Central System, and messages are passed back and forth. Therefore it acts like both a server and a client in that it both makes and recieves requests to and from the CS.
 
 ## CS request JSON
 Use this node to make make requests to an EVSE charge point station that support OCPP 1.6 JSON. Its behavior and functionality are similar to that of the *[CS request SOAP](#cs_request-soap)* node with the exception that it only support OCPP 1.6 JSON commands.
+
+
 
 # Author
 
