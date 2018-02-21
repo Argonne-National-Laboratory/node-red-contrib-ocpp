@@ -2,6 +2,7 @@ var path = require('path');
 var soap = require('soap');
 var os = require('os');
 var fs = require('fs');
+const uuidv4 = require('uuid/v4');
 
 module.exports = function(RED) {
     function OcppRequestNode(config) {
@@ -37,6 +38,7 @@ module.exports = function(RED) {
 
                     msg.ocpp = {};
                     msg.ocpp.command = msg.payload.command||node.command;
+                    msg.ocpp.MessageId = msg.payload.MessageId||uuidv4();
                     msg.ocpp.chargeBoxIdentity = cbId;
                     msg.ocpp.url = node.url;
                     msg.ocpp.ocppVer = node.ocppVer;
@@ -65,11 +67,15 @@ module.exports = function(RED) {
 
                     client.addSoapHeader({To: msg.ocpp.url},null,null,addressing);
 
-                    if (node.ocppVer != "1.5s"){
-                        let act = '<Action xmlns="' + addressing + '" soap:mustUnderstand="true">' + msg.ocpp.command + '</Action>';
+                    // if (node.ocppVer != "1.5s"){
+                        let act = `<Action xmlns="${addressing}" soap:mustUnderstand="true">/${msg.ocpp.command}</Action>`;
                         client.addSoapHeader(act);
-                    }
-
+                    // }
+                    let repto = `<ReplyTo xmlns="${addressing}"><Address>http://www.w3.org/2005/08/addressing/anonymous</Address></ReplyTo>`;
+                    client.addSoapHeader(repto);
+                    let msgid = `<MessageID xmlns="${addressing}">${msg.ocpp.MessageId}</MessageID>`;
+                    client.addSoapHeader(msgid);
+                    
                     // Setup logging
                     var log_file;
                     if (node.pathlog == "") node.logging = false;
@@ -83,7 +89,8 @@ module.exports = function(RED) {
                         });
     
                         client.on('soapError', function(err, xchgId){
-                            logData('error', err);
+                            console.log('got error:', err.message);
+                            //logData('error', err);
                         });
         
                     }
@@ -115,7 +122,8 @@ module.exports = function(RED) {
                 // set a timestamp for the logged item
                 let date = new Date().toLocaleString();
                 // create the logged info from a template
-                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data.replace(/[\n\r]/g,"")} ${os.EOL}`;
+                var xdata = data||'<no data>';
+                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${xdata.replace(/[\n\r]/g,"")} ${os.EOL}`;
 
                 // create/append the log info to the file
                 fs.appendFile(node.pathlog,logInfo,(err) => {

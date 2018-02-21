@@ -20,7 +20,7 @@
             port: {value: "", required: true, validate: RED.validators.number()},
             enabled15: { value: false, required: true},
             path15: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path16.toLowerCase() && v.toLowerCase() != this.path16j.toLowerCase();}},
-            enabled16: { value: true, required: true},
+            enabled16: { value: false, required: true},
             path16: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase() && v.toLowerCase() != this.path16j.toLowerCase();}},
             enabled16j: { value: true, required: true},
             path16j: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase() && v.toLowerCase() != this.path16.toLowerCase();}},

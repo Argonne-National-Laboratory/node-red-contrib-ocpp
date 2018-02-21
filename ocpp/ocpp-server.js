@@ -28,6 +28,7 @@ soap.Server.prototype.__envelope = soap.Server.prototype._envelope;
 
 soap.Server.prototype._envelope = function(body, includeTimestamp){
     //var xml = ""
+
     let xml = this.__envelope(body, includeTimestamp);
     xml = xml.replace(' xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"', '');
     //xml = xml.replace(' xmlns:tns="urn://Ocpp/Cs/2012/06/"','');
@@ -103,8 +104,10 @@ module.exports = function(RED) {
 
             let soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
 
-            addHeaders(ocppVer, headers, soapSvr);
+            // addHeaders(ocppVer, headers, soapSvr);
+            // addHeaders(ocppVer, headers, soapServer15);
 
+            // console.log('Headers: ',soapSvr.getSoapHeaders());
 
             let cbi = headers.chargeBoxIdentity||"Unknown";
 
@@ -207,14 +210,14 @@ module.exports = function(RED) {
             // console.log('In middleware #########')
             if (req.method == "POST" && typeof req.headers['content-type'] !== "undefined") {
                 if (req.headers['content-type'].toLowerCase().includes('action')){
-                    // console.log(req.headers)
+                    //  console.log(req.headers)
                     let ctstr = req.headers['content-type'];
                     let ctarr = ctstr.split(";");
-                    // console.log("before: ", ctarr);
+                    //  console.log("before: ", ctarr);
                     ctarr = ctarr.filter(function(ctitem){
                         return ! ctitem.toLowerCase().includes('action')
                     })
-                    // console.log("after: ", ctarr.join(";"));
+                    //  console.log("after: ", ctarr.join(";"));
                     req.headers['content-type'] = ctarr.join(";");
                 }
             }
@@ -228,6 +231,35 @@ module.exports = function(RED) {
             if (node.pathlog == "") node.logging = false;
             if (node.enabled15){
                 soapServer15 = soap.listen(expressServer,{ path: node.svcPath15, services: ocppService15, xml: wsdl15} );
+                soapServer15.addSoapHeader(function(methodName,args, headers, req){
+                    let addressing = 'http://www.w3.org/2005/08/addressing';
+                    let act_hdr;
+                    let msgid_hdr;
+                    let full_hdr;
+                    if (headers.Action){
+                        let action = headers.Action.$value||headers.Action;
+                        if (action){
+                            action = action + 'Response';
+                            //soapServer.addSoapHeader({Action: action }, null, null, addressing);
+                            full_hdr = '<Action xmlns="' + addressing + '" soap:mustUnderstand="true">' + action + '</Action>';
+                        }
+                    }
+                    if (headers.MessageID){
+                        full_hdr = full_hdr + '<RelatesTo RelationshipType="http://www.w3.org/2005/08/addressing/reply" xmlns="http://www.w3.org/2005/08/addressing">' + headers.MessageID + "</RelatesTo>"
+                    }
+                    full_hdr = full_hdr + `<To xmlns="${addressing}" >http://www.w3.org/2005/08/addressing/anonymous</To>`;
+
+                    full_hdr = full_hdr + `<tns:chargeBoxIdentity>${headers.chargeBoxIdentity}</tns:chargeBoxIdentity>`;
+                    // We are only adding teh mustUnderstand to 1.6 since some CP implementations do not support having that
+                    // attribute in the chargeBoxIdentity field.
+                    // if (ocppVer != "1.5"){
+                    //     cbid = cbid + ' soap:mustUnderstand="true"';
+                    // }
+                    // cbid = cbid + '>' + headers.chargeBoxIdentity + '</tns:chargeBoxIdentity>';
+        
+                    return full_hdr;
+                });
+
                 soapServer15.log = (node.logging) ? logData : null;
             }
 
@@ -273,11 +305,13 @@ module.exports = function(RED) {
             
                         request[msgType] = CALL;
                         request[msgId] = data.payload.MessageId||uuidv4();
-                        request[msgAction] = data.payload.command;
-                        request[msgCallPayload] = data.payload.data||{};
+                        // request[msgAction] = data.payload.command;
+                        // request[msgCallPayload] = data.payload.data||{};
+                        request[msgAction] = data.ocpp.command;
+                        request[msgCallPayload] = data.ocpp.data||{};
 
                         logData('request', JSON.stringify(request).replace(/,/g,", "));                        
-            
+                        
                         ee.once(request[msgId], (retData) => {
                             cb(err, retData);
                         });
@@ -306,7 +340,6 @@ module.exports = function(RED) {
     
                     ws.on('message', function(msgIn){
     
-    
                         let response = [];
     
                         let id = uuidv4();
@@ -314,8 +347,7 @@ module.exports = function(RED) {
                         let currTime = new Date().toISOString();
     
                         let msgParsed;
-    
-    
+        
                         let eventName = ws.upgradeReq.params.cbid + REQEVTPOSTFIX;
                         if (ee.eventNames().indexOf(eventName) == -1){
                             // console.log( `Need to add event ${eventName}`);
@@ -398,14 +430,17 @@ module.exports = function(RED) {
         // Creates the custom headers for our soap messages
         const addHeaders = function(ocppVer, headers, soapServer){
             let addressing = 'http://www.w3.org/2005/08/addressing';
+            console.log('Clearing Soap Headers');
             soapServer.clearSoapHeaders();
             //soapServer.addSoapHeader({'tns:chargeBoxIdentity': headers.chargeBoxIdentity });
             if (headers.Action){
                 let action = headers.Action.$value||headers.Action;
+                console.log('-----> Action :', action);
                 if (action){
                     action = action + 'Response';
                     //soapServer.addSoapHeader({Action: action }, null, null, addressing);
                     let act = '<Action xmlns="' + addressing + '" soap:mustUnderstand="true">' + action + '</Action>';
+                    console.log('act:', act);
                     soapServer.addSoapHeader(act);
                 }else{
                     //node.log('ERROR: No Action Found- '+ JSON.stringify(headers));
@@ -428,6 +463,10 @@ module.exports = function(RED) {
             cbid = cbid + '>' + headers.chargeBoxIdentity + '</tns:chargeBoxIdentity>';
 
             soapServer.addSoapHeader(cbid);
+
+            //var hdrs = soapServer.getSoapHeaders();
+            //console.log(hdrs);
+
         }
 
         // Creates the message and payload for sending out into the flow and sends it.
@@ -731,6 +770,7 @@ module.exports = function(RED) {
         // Creates the custom headers for our soap messages
         const addHeaders = function(headers, soapServer){
             let addressing = 'http://www.w3.org/2005/08/addressing';
+            console.log('Clearing Soap Headers 2');
             soapServer.clearSoapHeaders();
             //soapServer.addSoapHeader({'tns:chargeBoxIdentity': headers.chargeBoxIdentity });
             if (headers.Action){
@@ -841,14 +881,51 @@ module.exports = function(RED) {
         this.name = config.name||"Request JSON";
         this.log = config.log;
         this.pathlog = config.pathlog;
+        this.cmddata = config.cmddata||'error';
+        this.command = config.command||'error';
 
         this.on('input', function(msg) {
 
-
             msg.ocpp = {};
-            msg.ocpp.command = msg.payload.command // ||node.command;
+            msg.ocpp.command = msg.payload.command || node.command;
+
+            // We are only validating that there is some text for the command. 
+            // Currently not checking for a valid command.
+            if (msg.ocpp.command === 'error'){
+                node.warn("OCPP JSON request node missing item: command");
+                return;
+            }
+
+            // Check for the valid JSON formatted data.
+            // msg.ocpp.data = msg.payload.data ||JSON.parse(node.cmddata);
+            let datastr;
+            if (msg.payload.data){
+                try {
+                    datastr = JSON.stringify(msg.payload.data);
+                    msg.ocpp.data = JSON.parse(datastr);
+                }
+                catch (e){
+                    node.warn('OCPP JSON request node invalid payload.data for message (' + msg.ocpp.command + '): ' + e.message);
+                    return;
+                }
+            }
+            else if (node.cmddata) {
+                try {
+                    datastr = JSON.stringify(node.cmddata);
+                    msg.ocpp.data = JSON.parse(datastr);
+                }
+                catch (e){
+                    node.warn('OCPP JSON request node invalid message config data for message (' + msg.ocpp.command + '): ' + e.message);
+                    return;
+                }
+            }
+            else {
+                node.warn('OCPP JSON request node missing data for message:' + msg.ocpp.command);
+                return;
+            }
+
             msg.ocpp.chargeBoxIdentity = msg.payload.cbId||node.cbId;
-            msg.ocpp.data = msg.payload.data // ||JSON.parse(node.cmddata);
+
             if (msg.ocpp.MessageId){
                 msg.msgId = msg.payload.MessageId;
             }
@@ -858,6 +935,7 @@ module.exports = function(RED) {
 
             //console.log(`${os.EOL} SENDING TO ${eventname} ${os.EOL}`)
             // console.log(JSON.stringify(msg));
+            msg.payload = {};
             ee.emit(eventname, msg, function(err, response){
 
                 if (err) {
