@@ -39,7 +39,7 @@ that information to override the defaults via a message payload.
 For example, to set up a *Reset* command request, you can select the *Reset* command from the nodes configuraiton dropdown. The Reset command
 also requires sending a parameter indicating the type of reset to be performed, either *hard* or *soft*. In the Command Params field of the configuration, you would provide a JSON formatted object similar to this:
 
-```json
+```javascript
 {
     "type": "Soft"
 }
@@ -50,7 +50,7 @@ Alternately, you can pass the node a payload which contains a command and/or dat
 by passing it a message, the message payload (*msg.payload*) would look as follows:
 
 
-```json
+```javascript
 {
     "commnad": "Reset",
     "data" : { "type" : "Hard" }
@@ -62,14 +62,14 @@ with a default command of *Reset*, you could pass in just the following:
 
 
 **for hard reset**
-```json
+```javascript
 {
     "data": { "type": "Hard" }
 }
 ```
 
 **for soft reset**
-```json
+```javascript
 {
     "data": { "type": "Soft"}
 }
@@ -78,7 +78,7 @@ with a default command of *Reset*, you could pass in just the following:
 
 For all request nodes the option exists to also pass in a user generated message ID that will be used to identify the message. 
 
-```json
+```javascript
 {
     "commnad": "Reset",
     "data" : { "type" : "Hard" },
@@ -92,7 +92,7 @@ This may make it easier for you to identify and track your message throughout yo
 
 The output returned by the node has the following message format:
 
-```json
+```javascript
 {
     "ocpp": {
         "command": "<the command being responded to>",
@@ -108,7 +108,7 @@ The output returned by the node has the following message format:
 ```
 Example return message from a OCPP 1.5 SOAP
 
-```json
+```javascript
 {
     "_msgid":"58c0fa49.ecac14",
     "topic":"",
@@ -144,7 +144,7 @@ To emulate a EVSE charge point station that utilizes OCPP 1.6 JSON, use the *[CP
 The ocpp-server node will listen for incoming reqests coming from the EVSE charge points that are targeting its address. It is capable of recieving messages via 1.5 SOAP, 1.6 SOAP, and 1.6 JSON if the protocols are enabled in its configuration.
 When the ocpp-server node receives a message, it will output a message in the following format:
 
-```json
+```javascript
 {
     "ocpp": {
         "ocppVersion": "<protocol version of message: 1.5, 1.6, or 1.6j>",
@@ -161,7 +161,7 @@ When the ocpp-server node receives a message, it will output a message in the fo
 }
 ```
 Here is an example of a OCPP 1.6 JSON Heartbeat request message.
-```json
+```javascript
 {   "ocpp":{
         "ocppVersion": "1.6j",
         "chargeBoxIdentity": "veefil-48310","MessageId": "uuid:f1d11de1-5725-9255-854b-da6542b4d9bb",
@@ -187,7 +187,7 @@ the node flow with the expection of the msg.payload section. The msg.payload sho
 
 For example, to accept a *BootNotification* request, set the payload of the response as:
 
-```json
+```javascript
 {
     "status": "Accepted",
     "currentTime": new Date().toISOString(),
@@ -212,9 +212,10 @@ Use this node to make make requests to an EVSE charge point station that support
 
 
 
-# Author
+# Authors
 
 [Jason D. Harper][5]
+[Bryan Nystrom][11]
 
 [Argonne National Labs][10]
 
@@ -225,7 +226,7 @@ Use this node to make make requests to an EVSE charge point station that support
 [5]:https://github.com/jayharper
 [6]:http://www.openchargealliance.org/protocols/ocpp/ocpp-15/
 [7]:http://www.openchargealliance.org/uploads/files/protected/ocpp_specification_1.5_final.pdf
-
 [8]:http://www.openchargealliance.org/protocols/ocpp/ocpp-15/
 [9]:http://www.openchargealliance.org/uploads/files/protected/ocpp_specification_1.5_final.pdf
 [10]:http://anl.gov
+[11]: https://github.com/bnystrom
