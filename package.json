@@ -12,7 +12,11 @@
   },
   "keywords": [
     "node-red",
-    "ocpp"
+    "ocpp",
+    "ocpp SOAP",
+    "ocpp JSON",
+    "ocpp centralsystem",
+    "ocpp chargepoint"
   ],
   "node-red": {
     "nodes": {
@@ -25,8 +29,11 @@
     }
   },
   "author": "Bryan Nystrom <bnystrom@gmail.com> (https://github.com/bnystrom)",
-  "license": "MIT",
-  "dependencies": {
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/Argonne-National-Laboratory/node-red-contrib-ocpp/issues"
+  },
+  "homepage": "https://github.com/Argonne-National-Laboratory/node-red-contrib-ocpp#readme"  "dependencies": {
     "express": "^4.15.4",
     "express-ws": "^3.0.0",
     "soap": "*",

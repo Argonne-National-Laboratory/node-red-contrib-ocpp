@@ -1,5 +1,5 @@
-node-red-contrib-ocpp-cs-cp
-========================
+# node-red-contrib-ocpp
+
 
 
 [Node-Red][4] nodes for communicating with the EVSE Charge Points and Central Systems via the [Open Charge Point Protocol][6] (hereafter OCPP). These node-red nodes
@@ -11,7 +11,7 @@ Based on the [OCPP 1.5][6] and [OCPP 1.6][8] secifications utilizing the Simple 
 
 Run the following command in the root directory of your Node-RED install
 
-    npm install node-red-contrib-ocpp-cs-cp
+    npm install node-red-contrib-ocpp
 
 
 # Requirements
@@ -215,6 +215,7 @@ Use this node to make make requests to an EVSE charge point station that support
 # Authors
 
 [Jason D. Harper][5]
+
 [Bryan Nystrom][11]
 
 [Argonne National Labs][10]
