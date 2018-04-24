@@ -100,14 +100,7 @@ module.exports = function(RED) {
                 cb(returnMsg);
             });
 
-            // Add custom headers to the soap package
-
-            let soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
-
-            // addHeaders(ocppVer, headers, soapSvr);
-            // addHeaders(ocppVer, headers, soapServer15);
-
-            // console.log('Headers: ',soapSvr.getSoapHeaders());
+            // let soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
 
             let cbi = headers.chargeBoxIdentity||"Unknown";
 
@@ -232,32 +225,7 @@ module.exports = function(RED) {
             if (node.enabled15){
                 soapServer15 = soap.listen(expressServer,{ path: node.svcPath15, services: ocppService15, xml: wsdl15} );
                 soapServer15.addSoapHeader(function(methodName,args, headers, req){
-                    let addressing = 'http://www.w3.org/2005/08/addressing';
-                    let act_hdr;
-                    let msgid_hdr;
-                    let full_hdr;
-                    if (headers.Action){
-                        let action = headers.Action.$value||headers.Action;
-                        if (action){
-                            action = action + 'Response';
-                            //soapServer.addSoapHeader({Action: action }, null, null, addressing);
-                            full_hdr = '<Action xmlns="' + addressing + '" soap:mustUnderstand="true">' + action + '</Action>';
-                        }
-                    }
-                    if (headers.MessageID){
-                        full_hdr = full_hdr + '<RelatesTo RelationshipType="http://www.w3.org/2005/08/addressing/reply" xmlns="http://www.w3.org/2005/08/addressing">' + headers.MessageID + "</RelatesTo>"
-                    }
-                    full_hdr = full_hdr + `<To xmlns="${addressing}" >http://www.w3.org/2005/08/addressing/anonymous</To>`;
-
-                    full_hdr = full_hdr + `<tns:chargeBoxIdentity>${headers.chargeBoxIdentity}</tns:chargeBoxIdentity>`;
-                    // We are only adding teh mustUnderstand to 1.6 since some CP implementations do not support having that
-                    // attribute in the chargeBoxIdentity field.
-                    // if (ocppVer != "1.5"){
-                    //     cbid = cbid + ' soap:mustUnderstand="true"';
-                    // }
-                    // cbid = cbid + '>' + headers.chargeBoxIdentity + '</tns:chargeBoxIdentity>';
-        
-                    return full_hdr;
+                    return addHeaders(methodName,args,headers, 1.5);
                 });
 
                 soapServer15.log = (node.logging) ? logData : null;
@@ -265,8 +233,13 @@ module.exports = function(RED) {
 
             if (node.enabled16){
                 soapServer16 = soap.listen(expressServer,{ path: node.svcPath16, services: ocppService16, xml: wsdl16} );
+                soapServer16.addSoapHeader(function(methodName,args, headers, req){
+                    return addHeaders(methodName,args,headers, 1.6);
+                });
+
                 soapServer16.log = (node.logging) ? logData : null;
             }
+
             if (node.enabled16j){
                 const wspath = `${node.svcPath16j}/:cbid`;
                 logData('info', `Ready to recieve websocket requests on ${wspath}`);
@@ -428,45 +401,57 @@ module.exports = function(RED) {
         });
 
         // Creates the custom headers for our soap messages
-        const addHeaders = function(ocppVer, headers, soapServer){
+        const addHeaders = (methodName,args, headers, ocppVer) => {
+            const local_debug = true;
+
+            if (local_debug === true){
+                console.log('<!--- SOAP1.6 HEADERS --->');
+                    
+                console.log('<!--- methodName --->');
+                console.log(`< ${methodName} />`);
+                
+                console.log('<!--- args ---');
+                console.log(args);
+                console.log('--->')
+    
+                console.log('<!--- REQUEST HEADER ----')
+                console.log(headers);    
+                console.log('--->')
+            }
+
             let addressing = 'http://www.w3.org/2005/08/addressing';
-            console.log('Clearing Soap Headers');
-            soapServer.clearSoapHeaders();
-            //soapServer.addSoapHeader({'tns:chargeBoxIdentity': headers.chargeBoxIdentity });
+            let act_hdr;
+            let msgid_hdr;
+            let full_hdr;
+
+            const mustUnderstand = (ocppVer === 1.5)? '' : ' soap:mustUnderstand="true"';
+
             if (headers.Action){
                 let action = headers.Action.$value||headers.Action;
-                console.log('-----> Action :', action);
+                
                 if (action){
-                    action = action + 'Response';
-                    //soapServer.addSoapHeader({Action: action }, null, null, addressing);
-                    let act = '<Action xmlns="' + addressing + '" soap:mustUnderstand="true">' + action + '</Action>';
-                    console.log('act:', act);
-                    soapServer.addSoapHeader(act);
-                }else{
-                    //node.log('ERROR: No Action Found- '+ JSON.stringify(headers));
+                    full_hdr = `<Action xmlns="${addressing}"${mustUnderstand}>${action}Response</Action>`;
                 }
-
             }
             if (headers.MessageID){
-                let resp = '<RelatesTo RelationshipType="http://www.w3.org/2005/08/addressing/reply" xmlns="http://www.w3.org/2005/08/addressing">' + headers.MessageID + "</RelatesTo>"
-                soapServer.addSoapHeader(resp);
+                full_hdr = full_hdr + `<RelatesTo RelationshipType="http://www.w3.org/2005/08/addressing/reply" xmlns="http://www.w3.org/2005/08/addressing">${headers.MessageID}</RelatesTo>`;
             }
-            soapServer.addSoapHeader({ To: "http://www.w3.org/2005/08/addressing/anonymous"}, null, null, addressing);
-            // let cbid = '<tns:chargeBoxIdentity soap:mustUnderstand="true">' + headers.chargeBoxIdentity + '</tns:chargeBoxIdentity>';
+            full_hdr = full_hdr + `<To xmlns="${addressing}" >http://www.w3.org/2005/08/addressing/anonymous</To>`;
 
-            let cbid = '<tns:chargeBoxIdentity';
-            // We are only adding teh mustUnderstand to 1.6 since some CP implementations do not support having that
-            // attribute in the chargeBoxIdentity field.
-            if (ocppVer != "1.5"){
-                cbid = cbid + ' soap:mustUnderstand="true"';
+            if (headers.chargeBoxIdentity){
+                let cb = headers.chargeBoxIdentity.$value||headers.chargeBoxIdentity;
+                // We are only adding teh mustUnderstand to 1.6 since some CP implementations do not support having that
+                // attribute in the chargeBoxIdentity field.
+                let cbid = `<tns:chargeBoxIdentity${mustUnderstand}>${cb}</tns:chargeBoxIdentity>`;
+                full_hdr = full_hdr + cbid;
             }
-            cbid = cbid + '>' + headers.chargeBoxIdentity + '</tns:chargeBoxIdentity>';
+            if (local_debug === true){
+                console.log('<!--- REPLY HEADER --->')
+                console.log(full_hdr);    
+            }
 
-            soapServer.addSoapHeader(cbid);
-
-            //var hdrs = soapServer.getSoapHeaders();
-            //console.log(hdrs);
-
+            return full_hdr;
+    
         }
 
         // Creates the message and payload for sending out into the flow and sends it.

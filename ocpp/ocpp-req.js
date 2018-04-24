@@ -21,6 +21,8 @@ module.exports = function(RED) {
         this.logging = config.log;
         this.pathlog = config.pathlog;
 
+        node.status({fill: "blue", shape: "dot", text: `waiting to send: ${node.cbId}`});
+        
         this.on('input', function(msg) {
 
             // set up soap requests for SOAP 1.2 headers
@@ -76,6 +78,11 @@ module.exports = function(RED) {
                     let msgid = `<MessageID xmlns="${addressing}">${msg.ocpp.MessageId}</MessageID>`;
                     client.addSoapHeader(msgid);
                     
+                    if (msg.ocpp && msg.ocpp.command)
+                        node.status({fill: "green", shape: "dot", text: `sending: ${msg.ocpp.command}`});
+                    else
+                        node.status({fill: "red", shape: "dot", text: 'MISSING COMMAND'});
+
                     // Setup logging
                     var log_file;
                     if (node.pathlog == "") node.logging = false;
