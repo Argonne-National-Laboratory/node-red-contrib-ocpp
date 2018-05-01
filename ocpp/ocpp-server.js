@@ -102,7 +102,7 @@ module.exports = function(RED) {
 
             // let soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
 
-            let cbi = headers.chargeBoxIdentity||"Unknown";
+            let cbi = headers.chargeBoxIdentity.$value||headers.chargeBoxIdentity||"Unknown";
 
 
             // let action = headers.Action.$value||headers.Action
@@ -486,7 +486,7 @@ module.exports = function(RED) {
             msg.payload.command = command;
 
             // idenitfy which chargebox the message originated from
-            msg.ocpp.chargeBoxIdentity = headers.chargeBoxIdentity||"Unknown";
+            msg.ocpp.chargeBoxIdentity = headers.chargeBoxIdentity.$value||headers.chargeBoxIdentity||"Unknown";
             msg.ocpp.ocppVersion = ocppVer||"Unknown";
 
             if(headers.From){
@@ -644,7 +644,7 @@ module.exports = function(RED) {
             addHeaders(headers, soapSvr);
 
 
-            let cbi = headers.chargeBoxIdentity||"Unknown";
+            let cbi = headers.chargeBoxIdentity.$value||headers.chargeBoxIdentity||"Unknown";
             // let action = headers.Action.$value||headers.Action
             let action = command;
 
@@ -774,7 +774,7 @@ module.exports = function(RED) {
             //soapServer.addSoapHeader({ RelatesTo: headers.MessageID}, null, null, addressing)
             soapServer.addSoapHeader(resp);
             soapServer.addSoapHeader({ To: "http://www.w3.org/2005/08/addressing/anonymous"}, null, null, addressing);
-            let cbid = '<tns:chargeBoxIdentity soap:mustUnderstand="true">' + headers.chargeBoxIdentity + '</tns:chargeBoxIdentity>';
+            let cbid = '<tns:chargeBoxIdentity soap:mustUnderstand="true">' + headers.chargeBoxIdentity.$value||headers.chargeBoxIdentity||"Unknown" + '</tns:chargeBoxIdentity>';
             soapServer.addSoapHeader(cbid);
         }
 
@@ -810,7 +810,7 @@ module.exports = function(RED) {
             msg.payload.command = command;
 
             // idenitfy which chargebox the message originated from
-            msg.ocpp.chargeBoxIdentity = headers.chargeBoxIdentity||"Unknown";
+            msg.ocpp.chargeBoxIdentity = headers.chargeBoxIdentity.$value||headers.chargeBoxIdentity||"Unknown";
             msg.ocpp.ocppVersion = ocppVer||"Unknown";
 
             if(headers.From){
