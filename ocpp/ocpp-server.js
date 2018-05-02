@@ -896,8 +896,7 @@ module.exports = function(RED) {
             }
             else if (node.cmddata) {
                 try {
-                    datastr = JSON.stringify(node.cmddata);
-                    msg.ocpp.data = JSON.parse(datastr);
+                    msg.ocpp.data = JSON.parse(node.cmddata);
                 }
                 catch (e){
                     node.warn('OCPP JSON request node invalid message config data for message (' + msg.ocpp.command + '): ' + e.message);
