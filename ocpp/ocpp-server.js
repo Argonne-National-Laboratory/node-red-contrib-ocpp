@@ -167,10 +167,10 @@ module.exports = function(RED) {
         let wsrequest;
 
         x.on('connection', function connection(ws){
-            // const ip = req.connection.remoteAddress;
-            // console.log(`IP Address = ${ip}`);
-            // console.log('im here....');
-            // console.log(ws.upgradeReq.params.cbid);
+             //const ip = req.connection.remoteAddress;
+             //console.log(`IP Address = ${ip}`);
+             console.log('im here....');
+             console.log(ws.upgradeReq.params.cbid);
             if (ws.upgradeReq.params && ws.upgradeReq.params.cbid){
                 let eventName = ws.upgradeReq.params.cbid + REQEVTPOSTFIX;
                 if (ee.eventNames().indexOf(eventName) == -1){
@@ -402,7 +402,7 @@ module.exports = function(RED) {
 
         // Creates the custom headers for our soap messages
         const addHeaders = (methodName,args, headers, ocppVer) => {
-            const local_debug = true;
+            const local_debug = false;
 
             if (local_debug === true){
                 console.log('<!--- SOAP1.6 HEADERS --->');
@@ -921,6 +921,9 @@ module.exports = function(RED) {
             //console.log(`${os.EOL} SENDING TO ${eventname} ${os.EOL}`)
             // console.log(JSON.stringify(msg));
             msg.payload = {};
+
+            console.log('About to ee.emit');
+            console.log({msg});
             ee.emit(eventname, msg, function(err, response){
 
                 if (err) {

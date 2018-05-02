@@ -126,6 +126,7 @@ module.exports = function(RED) {
 
         function logData(type, data) {
             if (node.logging === true){  // only log if no errors w/ log file
+                console.log('Sup Dog2');
                 // set a timestamp for the logged item
                 let date = new Date().toLocaleString();
                 // create the logged info from a template
