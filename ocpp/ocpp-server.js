@@ -256,6 +256,7 @@ module.exports = function(RED) {
                     const msgCallPayload = 3;
                     const msgResPayload = 2;
                 
+                    let reqMsgIdToCmd = {};
                     let msg = {};
                     msg.ocpp = {};
                     msg.payload = {};
@@ -289,6 +290,8 @@ module.exports = function(RED) {
                             cb(err, retData);
                         });
             
+                        reqMsgIdToCmd[request[msgId]] = request[msgAction];
+
                         ws.send(JSON.stringify(request));
                         
                     }
@@ -373,7 +376,16 @@ module.exports = function(RED) {
                             msg.ocpp.MessageId = msgParsed[msgId];
                             msg.ocpp.msgType = CALLRESULT;
                             msg.payload.data = msgParsed[msgResPayload];
-                    
+                            
+                            // Lookup the command name via the returned message ID
+                            if (reqMsgIdToCmd[msg.msgId]) {
+                                msg.ocpp.command = reqMsgIdToCmd[msg.msgId];
+                                delete reqMsgIdToCmd[msg.msgId];
+                            }
+                            else {
+                                msg.ocpp.command = 'unknown';
+                            }
+
                             ee.emit(msg.msgId, msg);
                             
                         }
@@ -894,7 +906,7 @@ module.exports = function(RED) {
                     return;
                 }
             }
-            else if (node.cmddata) {
+            else if (node.cmddata != 'error') {
                 try {
                     msg.ocpp.data = JSON.parse(node.cmddata);
                 }
@@ -910,7 +922,7 @@ module.exports = function(RED) {
 
             msg.ocpp.chargeBoxIdentity = msg.payload.cbId||node.cbId;
 
-            if (msg.ocpp.MessageId){
+            if (msg.payload.MessageId){
                 msg.msgId = msg.payload.MessageId;
             }
             let eventname = msg.ocpp.chargeBoxIdentity + REQEVTPOSTFIX;
@@ -923,7 +935,8 @@ module.exports = function(RED) {
 
             console.log('About to ee.emit');
             console.log({msg});
-            ee.emit(eventname, msg, function(err, response){
+            ee.emit(eventname
+                , msg, function(err, response){
 
                 if (err) {
                     // report any errors
