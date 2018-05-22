@@ -13,6 +13,7 @@ const expressws = require('express-ws');
 
 const EventEmitter = events.EventEmitter;
 const REQEVTPOSTFIX = '::REQUEST';
+const CBIDCONPOSTFIX = '::CONNECTED';
 
 
 let ee;
@@ -50,7 +51,7 @@ module.exports = function(RED) {
         RED.nodes.createNode(this, config);
         const node = this;
 
-        node.status({fill: "blue", shape: "dot", text: "Waiting..."})
+        node.status({fill: "blue", shape: "ring", text: "Waiting..."})
 
         // ee = new EventEmitter();
 
@@ -169,7 +170,14 @@ module.exports = function(RED) {
         x.on('connection', function connection(ws){
              //const ip = req.connection.remoteAddress;
              //console.log(`IP Address = ${ip}`);
+/*
              console.log('im here....');
+             console.log({ws});
+             let upgradeReq = ws.upgradeReq;
+             console.log({upgradeReq});
+             let params = ws.upgradeReq.params;
+             console.log({params});
+
              console.log(ws.upgradeReq.params.cbid);
             if (ws.upgradeReq.params && ws.upgradeReq.params.cbid){
                 let eventName = ws.upgradeReq.params.cbid + REQEVTPOSTFIX;
@@ -179,7 +187,7 @@ module.exports = function(RED) {
                 }            
 
             }
-
+*/
         });
 
 
@@ -265,11 +273,12 @@ module.exports = function(RED) {
                     msg.ocpp.ocppVersion = "1.6j";
                     msg.ocpp.chargeBoxIdentity = req.params.cbid;
     
-                    // console.log('WebSocket to ocppj, ChargePointID =', req.params.cbid);
-                    node.status({fill: "green", shape: "dot", text: `Connected on ${node.svcPath16j}/${req.params.cbid}`})                
-                        
+                    node.status({fill: "green", shape: "dot", text: `Connected on ${node.svcPath16j}/${req.params.cbid}`});
+
+                    // emit to other nodes the connection has been established
+                    ee.emit( req.params.cbid + CBIDCONPOSTFIX);
+
                     let eventname = req.params.cbid + REQEVTPOSTFIX;
-                    //console.log('Connecting to: ', req.params.cbid);
                     logData('info', `Websocket connecting to chargebox: ${req.params.cbid}`);
                     
     
@@ -279,8 +288,6 @@ module.exports = function(RED) {
             
                         request[msgType] = CALL;
                         request[msgId] = data.payload.MessageId||uuidv4();
-                        // request[msgAction] = data.payload.command;
-                        // request[msgCallPayload] = data.payload.data||{};
                         request[msgAction] = data.ocpp.command;
                         request[msgCallPayload] = data.ocpp.data||{};
 
@@ -313,6 +320,9 @@ module.exports = function(RED) {
                         node.log("Websocket Error: " + err);
                         //console.log("Websocket Error:",err);
                     });
+
+
+                    let callMsgIdToCmd = [];
     
                     ws.on('message', function(msgIn){
     
@@ -323,6 +333,9 @@ module.exports = function(RED) {
                         let currTime = new Date().toISOString();
     
                         let msgParsed;
+
+                        msg.ocpp = {};
+                        msg.payload = {};
         
                         let eventName = ws.upgradeReq.params.cbid + REQEVTPOSTFIX;
                         if (ee.eventNames().indexOf(eventName) == -1){
@@ -339,15 +352,16 @@ module.exports = function(RED) {
 
                         logData(msgTypeStr[msgParsed[msgType] - CALL], msgIn);
                     
+                        msg.ocpp.MessageId = msgParsed[msgId];
+                        msg.ocpp.msgType = msgParsed[msgType];
+
+
                         if (msgParsed[msgType] == CALL){
                             msg.msgId = id;
-                            msg.ocpp.MessageId = msgParsed[msgId];
-                            msg.ocpp.msgType = CALL;
                             msg.ocpp.command =  msgParsed[msgAction];
                             msg.payload.command = msgParsed[msgAction];
                             msg.payload.data = msgParsed[msgCallPayload];
-        
-    
+            
                             let to = setTimeout( function(id){
                                 // node.log("kill:" + id);
                                 if (ee.listenerCount(id) > 0){
@@ -355,7 +369,15 @@ module.exports = function(RED) {
                                     ee.removeListener(id,evList[0]);
                                 }
                             }, 120 * 1000, id);
-                
+
+                            
+                            callMsgIdToCmd.unshift({ msgId: msg.ocpp.MessageId , command: msg.ocpp.command });
+
+                            while (callMsgIdToCmd.length > 25 ){
+                                callMsgIdToCmd.pop();
+                            } 
+                            // console.log({callMsgIdToCmd});
+
                             // This makes the response async so that we pass the responsibility onto the response node
                             ee.once(id, function(returnMsg){
                                 clearTimeout(to);
@@ -368,13 +390,12 @@ module.exports = function(RED) {
                                 ws.send(JSON.stringify(response));
                                 
                             });
+                            node.status({fill: "green", shape: "dot", text: `Request: ${msg.ocpp.command}`});                
                 
                             node.send(msg);
                         }
                         else if (msgParsed[msgType] == CALLRESULT){
                             msg.msgId = msgParsed[msgId];
-                            msg.ocpp.MessageId = msgParsed[msgId];
-                            msg.ocpp.msgType = CALLRESULT;
                             msg.payload.data = msgParsed[msgResPayload];
                             
                             // Lookup the command name via the returned message ID
@@ -385,9 +406,45 @@ module.exports = function(RED) {
                             else {
                                 msg.ocpp.command = 'unknown';
                             }
+                            node.status({fill: "blue", shape: "dot", text: `Result: ${msg.ocpp.command}`});                
 
                             ee.emit(msg.msgId, msg);
                             
+                        }
+                        else if (msgParsed[msgType] == CALLERROR){
+
+                            msg.payload.ErrorCode = msgParsed[2];
+                            msg.payload.ErrorDescription = msgParsed[3];
+                            msg.payload.ErrorDetails = msgParsed[4];
+
+                            // search the command array for the command associated with the message id
+
+                            let findMsgId = { msgId: msg.ocpp.MessageId };
+
+                            function getCmdIdx(cmds){
+                                return (cmds.msgId === this.msgId);                                
+                            }
+                            let cmdIdx = callMsgIdToCmd.findIndex( getCmdIdx, findMsgId);
+
+                            if (cmdIdx != -1){
+                                msg.payload.command = callMsgIdToCmd[cmdIdx].command;
+                                msg.ocpp.command = msg.payload.command;
+                                delete callMsgIdToCmd.splice(cmdIdx,1);
+                            } 
+                            else {
+                                msg.payload.command = 'unknown';
+                                msg.ocpp.command = msg.payload.command;
+                            }
+
+                            node.status({fill: "red", shape: "dot", text: `ERROR: ${msg.payload.command}`});                
+
+                            //
+                            //console.log('Got an ERROR');
+                            //console.log({msg});
+                            //
+
+                            node.send(msg);
+
                         }
     
                     });
@@ -553,7 +610,7 @@ module.exports = function(RED) {
         let node = this;
         // console.log('starting Response Node')
 
-        node.status({fill: "blue", shape: "dot", text: "Waiting..."})
+        node.status({fill: "blue", shape: "ring", text: "Waiting..."})
 
         this.on('input', function(msg) {
             // var x = 0;
@@ -601,7 +658,7 @@ module.exports = function(RED) {
         RED.nodes.createNode(this, config);
         let node = this;
 
-        node.status({fill: "blue", shape: "dot", text: "Waiting..."})
+        node.status({fill: "blue", shape: "ring", text: "Waiting..."})
 
         ee.on('error', (err) => {
             node.error('EMITTER ERROR: ' + err);
@@ -880,10 +937,32 @@ module.exports = function(RED) {
         this.pathlog = config.pathlog;
         this.cmddata = config.cmddata||'error';
         this.command = config.command||'error';
+        
+        let eventname = node.cbId + REQEVTPOSTFIX;
 
+
+        if (ee.listenerCount(eventname) < 1) {
+            node.status({fill: "blue", shape: "ring", text: `Waiting for ${node.cbId}`});
+            ee.once(node.cbId + CBIDCONPOSTFIX, () => {
+                node.status({fill: "green", shape: "dot", text: `Connected to ${node.cbId}`})                
+            });
+        }
+        else {
+            node.status({fill: "green", shape: "dot", text: `Connected to ${node.cbId}`})
+        }
+    
         this.on('input', function(msg) {
 
             msg.ocpp = {};
+
+            msg.ocpp.chargeBoxIdentity = msg.payload.cbId||node.cbId;
+            eventname = msg.ocpp.chargeBoxIdentity + REQEVTPOSTFIX;
+
+            if (ee.listenerCount(eventname) < 1) {
+                node.status({fill: "grey", shape: "ring", text: `Not connect to ${msg.ocpp.chargeBoxIdentity}`});
+                return;
+            }
+
             msg.ocpp.command = msg.payload.command || node.command;
 
             // We are only validating that there is some text for the command. 
@@ -920,12 +999,10 @@ module.exports = function(RED) {
                 return;
             }
 
-            msg.ocpp.chargeBoxIdentity = msg.payload.cbId||node.cbId;
 
             if (msg.payload.MessageId){
                 msg.msgId = msg.payload.MessageId;
             }
-            let eventname = msg.ocpp.chargeBoxIdentity + REQEVTPOSTFIX;
 
             //console.log(ee.eventNames());
 
@@ -933,8 +1010,9 @@ module.exports = function(RED) {
             // console.log(JSON.stringify(msg));
             msg.payload = {};
 
-            console.log('About to ee.emit');
-            console.log({msg});
+            // console.log('About to ee.emit');
+            // console.log({msg});
+            node.status({fill: "green", shape: "dot", text: `${msg.ocpp.chargeBoxIdentity}:${msg.ocpp.command}`})
             ee.emit(eventname
                 , msg, function(err, response){
 
