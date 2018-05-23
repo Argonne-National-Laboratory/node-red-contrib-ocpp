@@ -218,7 +218,7 @@ Use this node to make make requests to an EVSE charge point station that support
 
 [Bryan Nystrom][11]
 
-[Argonne National Labs][10]
+[Argonne National Laboratory][10]
 
 [1]:https://nodejs.org/
 [2]:https://na.chargepoint.com/UI/downloads/en/ChargePoint_Web_Services_API_Guide_Ver4.1_Rev4.pdf
@@ -229,5 +229,5 @@ Use this node to make make requests to an EVSE charge point station that support
 [7]:http://www.openchargealliance.org/uploads/files/protected/ocpp_specification_1.5_final.pdf
 [8]:http://www.openchargealliance.org/protocols/ocpp/ocpp-15/
 [9]:http://www.openchargealliance.org/uploads/files/protected/ocpp_specification_1.5_final.pdf
-[10]:http://anl.gov
+[10]:https://www.anl.gov
 [11]: https://github.com/bnystrom
