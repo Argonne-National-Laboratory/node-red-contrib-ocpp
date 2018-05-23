@@ -10,6 +10,10 @@
   "engines": {
     "node": ">=6.5.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Argonne-National-Laboratory/node-red-contrib-ocpp.git"
+  },
   "keywords": [
     "node-red",
     "ocpp",
@@ -28,7 +32,7 @@
       "ocpp-cp-json": "ocpp/ocpp-cp-json.js"
     }
   },
-  "author": "Bryan Nystrom <bnystrom@gmail.com> (https://github.com/bnystrom)",
+  "contributors": ["Bryan Nystrom <bnystrom@gmail.com> (https://github.com/bnystrom)", "Jason D. Harper <jharper@anl.gov> (https://github.com/jayharper)"],
   "license": "BSD-3-Clause",
   "bugs": {
     "url": "https://github.com/Argonne-National-Laboratory/node-red-contrib-ocpp/issues"
