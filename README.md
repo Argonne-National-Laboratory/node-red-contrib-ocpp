@@ -1,6 +1,6 @@
 # node-red-contrib-ocpp
 
-[![NPM](https://nodei.co/npm/node-red-contrib-ocpp.png)](https://nodei.co/npm/node-red-contrib-ocppp/)
+[![NPM](https://nodei.co/npm/node-red-contrib-ocpp.png)](https://nodei.co/npm/node-red-contrib-ocpp/)
 
 [Node-Red][4] nodes for communicating with the EVSE Charge Points and Central Systems via the [Open Charge Point Protocol][6] (hereafter OCPP). These node-red nodes
 allow you to take on the role of a Central System (CS) or Charge Point (CP).  
