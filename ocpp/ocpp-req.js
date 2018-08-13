@@ -129,9 +129,12 @@ module.exports = function(RED) {
                 console.log('Sup Dog2');
                 // set a timestamp for the logged item
                 let date = new Date().toLocaleString();
+                let dataStr = '<no data>'
+                if (typeof data === 'string'){
+                    dataStr = data.replace(/[\n\r]/g,"");
+                }
                 // create the logged info from a template
-                var xdata = data||'<no data>';
-                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${xdata.replace(/[\n\r]/g,"")} ${os.EOL}`;
+                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
 
                 // create/append the log info to the file
                 fs.appendFile(node.pathlog,logInfo,(err) => {

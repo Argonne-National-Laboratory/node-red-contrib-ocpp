@@ -336,8 +336,11 @@ module.exports = function(RED) {
 
                         msg.ocpp = {};
                         msg.payload = {};
-        
-                        let eventName = ws.upgradeReq.params.cbid + REQEVTPOSTFIX;
+                        const cbid = ws.upgradeReq.params.cbid || 'unknown';
+
+                        msg.ocpp.chargeBoxIdentity = cbid;
+
+                        let eventName = cbid + REQEVTPOSTFIX;
                         if (ee.eventNames().indexOf(eventName) == -1){
                             // console.log( `Need to add event ${eventName}`);
                             ee.on(eventname, wsrequest);
@@ -351,7 +354,7 @@ module.exports = function(RED) {
                         }
 
                         logData(msgTypeStr[msgParsed[msgType] - CALL], msgIn);
-                    
+                        
                         msg.ocpp.MessageId = msgParsed[msgId];
                         msg.ocpp.msgType = msgParsed[msgType];
 
@@ -583,9 +586,13 @@ module.exports = function(RED) {
             if (node.logging === true){  // only log if no errors w/ log file
                 // set a timestamp for the logged item
                 let date = new Date().toLocaleString();
+                let dataStr = '<no data>';
+                if (typeof data === 'string'){
+                    dataStr = data.replace(/[\n\r]/g,"");
+                }                
                 // create the logged info from a template
                 // let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data} ${os.EOL}`;
-                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data.replace(/[\n\r]/g,"")} ${os.EOL}`;
+                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
                 
 
                 // create/append the log info to the file
@@ -905,10 +912,16 @@ module.exports = function(RED) {
 
         function logData(type, data) {
             if (node.logging === true){  // only log if no errors w/ log file
-                // set a timestamp for the logged item
-                let date = new Date().toLocaleString();
-                // create the logged info from a template
-                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data.replace(/[\n\r]/g,"")} ${os.EOL}`;
+             // set a timestamp for the logged item
+             let date = new Date().toLocaleString();
+             let dataStr = '<no data>';
+             if (typeof data === 'string'){
+                 dataStr = data.replace(/[\n\r]/g,"");
+             }                
+             // create the logged info from a template
+             // let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data} ${os.EOL}`;
+             let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
+             
 
                 // create/append the log info to the file
                 fs.appendFile(node.pathlog,logInfo,(err) => {

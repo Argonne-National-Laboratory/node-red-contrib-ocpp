@@ -190,8 +190,12 @@ module.exports = function(RED) {
             if (node.logging === true){  // only log if no errors w/ log file
                 // set a timestamp for the logged item
                 let date = new Date().toLocaleString();
+                let dataStr = '<no data>';
+                if (typeof data === 'string'){
+                    dataStr = data.replace(/[\n\r]/g,"");
+                }
                 // create the logged info from a template
-                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data.replace(/[\n\r]/g,"")} ${os.EOL}`;
+                let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
 
                 // create/append the log info to the file
                 fs.appendFile(node.pathlog,logInfo,(err) => {
