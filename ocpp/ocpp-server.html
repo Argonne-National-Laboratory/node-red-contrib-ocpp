@@ -12,6 +12,34 @@
     }
 </style>
 <script type="text/javascript">
+    function valPath15(v){
+        var result = true;
+        if (this.enabled15){
+            var v1 = v.toLowerCase();
+            if (this.enabled16 && (v1 == this.path16.toLowerCase())) result = false;
+            if (result && this.enabled16j && (v1 == this.path16j.toLowerCase())) result = false;
+        }
+        return result;
+    }
+    function valPath16(v){
+        var result = true;
+        if (this.enabled16){
+            var v1 = v.toLowerCase();
+            if (this.enabled15 && (v1 == this.path15.toLowerCase())) result = false;
+            if (result && this.enabled16j && (v1 == this.path16j.toLowerCase())) result = false;
+        }
+        return result;
+    }
+    function valPath16j(v){
+        var result = true;
+        if (this.enabled16j){
+            var v1 = v.toLowerCase();
+            if (this.enabled15 && (v1 == this.path15.toLowerCase())) result = false;
+            if (result && this.enabled16 && (v1 == this.path16.toLowerCase())) result = false;
+        }
+        return result;
+    }
+
     RED.nodes.registerType('CS server', {
         category: 'OCPP',
         color: '#3FADB5',
@@ -19,11 +47,11 @@
             name: {value: "", required: false},
             port: {value: "", required: true, validate: RED.validators.number()},
             enabled15: { value: false, required: true},
-            path15: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path16.toLowerCase() && v.toLowerCase() != this.path16j.toLowerCase();}},
+            path15: {value: "", required: false, validate: valPath15},
             enabled16: { value: false, required: true},
-            path16: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase() && v.toLowerCase() != this.path16j.toLowerCase();}},
+            path16: {value: "", required: false, validate: valPath16},
             enabled16j: { value: true, required: true},
-            path16j: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase() && v.toLowerCase() != this.path16.toLowerCase();}},
+            path16j: {value: "", required: false, validate: valPath16j},
             log: { value: false, required: true },
             pathlog: {value: "", required: false}
         },

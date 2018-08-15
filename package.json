@@ -1,14 +1,14 @@
 {
   "name": "node-red-contrib-ocpp",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A set of nodes to communicate via OCPP to a compatible charge box or central system",
   "main": "ocpp-req.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "mon": "nodemon -x node-red"
+    "mon": "nodemon -e js,html --exec node-red"
   },
   "engines": {
-    "node": ">=6.5.0"
+    "node": ">=8.5.0"
   },
   "repository": {
     "type": "git",
@@ -45,16 +45,16 @@
     "debug": "^3.1.0",
     "express": "^4.15.4",
     "express-ws": "^4.0.0",
-    "nodemon": "^1.17.3",
     "soap": "^0.24.0",
-    "uuid": "^3.1.0",
-    "ws": "^5.2.0",
-    "xml-js": "^1.4.1"
+    "uuid": "^3.3.2",
+    "ws": "^5.2.2",
+    "xml-js": "^1.6.7"
   },
   "devDependencies": {
     "eslint": "^5.3.0",
     "eslint-config-standard": "^11.0.0",
     "eslint-config-strongloop": "^2.1.0",
-    "eslint-plugin-node": "^7.0.1"
+    "eslint-plugin-node": "^7.0.1",
+    "nodemon": "^1.18.3"
   }
 }
