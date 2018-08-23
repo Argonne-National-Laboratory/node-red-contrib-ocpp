@@ -49,7 +49,7 @@ module.exports = function(RED) {
   // Create a server node for monitoring incoming soap messages
   function OCPPServerNode(config) {
 
-    // console.log('starting Server Node')
+    debug('Starting CS Server Node');
 
     RED.nodes.createNode(this, config);
     const node = this;
@@ -211,17 +211,13 @@ module.exports = function(RED) {
     //  the message.
     //
     expressServer.use(function(req, res, next){
-      // console.log('In middleware #########')
       if (req.method == 'POST' && typeof req.headers['content-type'] !== 'undefined') {
         if (req.headers['content-type'].toLowerCase().includes('action')){
-          //  console.log(req.headers)
           let ctstr = req.headers['content-type'];
           let ctarr = ctstr.split(';');
-          //  console.log("before: ", ctarr);
           ctarr = ctarr.filter(function(ctitem){
             return !ctitem.toLowerCase().includes('action');
           });
-          //  console.log("after: ", ctarr.join(";"));
           req.headers['content-type'] = ctarr.join(';');
         }
       }
@@ -252,7 +248,7 @@ module.exports = function(RED) {
       if (node.enabled16j){
         const wspath = `${node.svcPath16j}/:cbid`;
         logData('info', `Ready to recieve websocket requests on ${wspath}`);
-        //console.log(`ws path = ${wspath}`);
+        debug(`ws path = ${wspath}`);
 
         expressServer.ws(wspath, function(ws, req, next) {
           const CALL = 2;
@@ -319,15 +315,15 @@ module.exports = function(RED) {
           });
 
           ws.on('error', function(err){
-            node.log('Websocket Error: ' + err);
-            //console.log("Websocket Error:",err);
+            node.log(`Websocket Error: ${err}`);
+            debug(`Websocket Error: ${err}`);
           });
 
 
           let callMsgIdToCmd = [];
           let localcbid = req.params.cbid;
 
-          console.log(localcbid);
+          debug(`Websocket connection to : ${localcbid}`);
 
           ws.on('message', function(msgIn){
 
@@ -347,7 +343,7 @@ module.exports = function(RED) {
 
             let eventName = cbid + REQEVTPOSTFIX;
             if (ee.eventNames().indexOf(eventName) == -1){
-              // console.log( `Need to add event ${eventName}`);
+              debug(`Need to add event ${eventName}`);
               ee.on(eventname, wsrequest);
             }
 
@@ -384,7 +380,7 @@ module.exports = function(RED) {
               while (callMsgIdToCmd.length > 25){
                 callMsgIdToCmd.pop();
               }
-              // console.log({callMsgIdToCmd});
+              // debug({callMsgIdToCmd});
 
               // This makes the response async so that we pass the responsibility onto the response node
               ee.once(id, function(returnMsg){
@@ -439,10 +435,9 @@ module.exports = function(RED) {
 
               node.status({fill: 'red', shape: 'dot', text: `ERROR: ${msg.payload.command}`});
 
-              //
-              //console.log('Got an ERROR');
-              //console.log({msg});
-              //
+
+              debug(`Got an ERROR: ${msg}`);
+
 
               node.send(msg);
 
@@ -461,7 +456,7 @@ module.exports = function(RED) {
     });
 
     this.on('close', function(){
-      // console.log('About to stop the server...');
+      debug('About to stop the server...');
       ee.removeAllListeners();
       //console.log(expressWs.getWss());
       expressWs.getWss().clients.forEach(function(ws){
@@ -472,7 +467,7 @@ module.exports = function(RED) {
       });
       server.close();
       this.status({fill: 'grey', shape: 'dot', text: 'stopped'});
-      // console.log('Server closed?...');
+      debug('Server closed?...');
 
     });
 
@@ -481,18 +476,18 @@ module.exports = function(RED) {
       const local_debug = false;
 
       if (local_debug === true){
-        console.log('<!--- SOAP1.6 HEADERS --->');
+        debug('<!--- SOAP1.6 HEADERS --->');
 
-        console.log('<!--- methodName --->');
-        console.log(`< ${methodName} />`);
+        debug('<!--- methodName --->');
+        debug(`< ${methodName} />`);
 
-        console.log('<!--- args ---');
-        console.log(args);
-        console.log('--->');
+        debug('<!--- args ---');
+        debug(args);
+        debug('--->');
 
-        console.log('<!--- REQUEST HEADER ----');
-        console.log(headers);
-        console.log('--->');
+        debug('<!--- REQUEST HEADER ----');
+        debug(headers);
+        debug('--->');
       }
 
       let addressing = 'http://www.w3.org/2005/08/addressing';
@@ -520,8 +515,8 @@ module.exports = function(RED) {
         full_hdr = full_hdr + cbid;
       }
       if (local_debug === true){
-        console.log('<!--- REPLY HEADER --->');
-        console.log(full_hdr);
+        debug('<!--- REPLY HEADER --->');
+        debug(full_hdr);
       }
 
       return full_hdr;
@@ -617,7 +612,7 @@ module.exports = function(RED) {
     RED.nodes.createNode(this, config);
 
     let node = this;
-    // console.log('starting Response Node')
+    debug('Starting CS Response Node');
 
     node.status({fill: 'blue', shape: 'ring', text: 'Waiting...'});
 
@@ -661,7 +656,7 @@ module.exports = function(RED) {
 
   function OCPPChargePointServerNode(config) {
 
-    // console.log('starting Server Node')
+    debug('Starting CP Server Node');
 
     RED.nodes.createNode(this, config);
     let node = this;
@@ -669,7 +664,8 @@ module.exports = function(RED) {
     node.status({fill: 'blue', shape: 'ring', text: 'Waiting...'});
 
     ee.on('error', (err) => {
-      node.error('EMITTER ERROR: ' + err);
+      node.error(`EMITTER ERROR: ${err}`);
+      debug(`EMITTER ERROR: ${err}`);
     });
 
 
@@ -952,6 +948,7 @@ module.exports = function(RED) {
   function OCPPRequestJNode(config) {
     RED.nodes.createNode(this, config);
 
+    debug('Starting CS request JSON Node');
     const node = this;
 
     this.remotecb = RED.nodes.getNode(config.remotecb);

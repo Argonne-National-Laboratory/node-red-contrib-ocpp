@@ -5,10 +5,13 @@ const soap = require('soap');
 const os = require('os');
 const fs = require('fs');
 
+const debug = require('debug')('anl:ocpp:cp-req-soap');
+
 module.exports = function(RED) {
   function OcppRequestCPNode(config) {
     RED.nodes.createNode(this, config);
 
+    debug('Starting cp-req-soap node');
     var node = this;
 
     this.remotecs = RED.nodes.getNode(config.remotecs);
@@ -51,9 +54,11 @@ module.exports = function(RED) {
 
           if (!msg.ocpp.command){
             node.error('Missing Command in SOAP request message');
+            debug('Missing Command in SOAP request message');
             return;
           } else if (!msg.ocpp.data){
             node.error('Missing Data in SOAP request message');
+            debug('Missing Data in SOAP request message');
             return;
           }
 

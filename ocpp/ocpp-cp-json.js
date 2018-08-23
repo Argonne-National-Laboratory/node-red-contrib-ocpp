@@ -16,6 +16,8 @@ module.exports = function(RED) {
   function OCPPChargePointJNode(config) {
     RED.nodes.createNode(this, config);
 
+    debug('Starting CP client JSON node');
+
     const CALL = 2;
     const CALLRESULT = 3;
 
@@ -62,6 +64,7 @@ module.exports = function(RED) {
     ws.on('error', function(err){
       //console.log(`Websocket error: ${err}`);
       node.log(`Websocket error: ${err}`);
+      debug(`Websocket error: ${err}`);
     });
 
     ws.on('message', function(msgIn) {
@@ -177,7 +180,7 @@ module.exports = function(RED) {
     this.on('close', function(){
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
       logData('info', 'Websocket closed');
-      debug('Closing node..');
+      debug('Closing CP client JSON node..');
       //console.log(`WS STATUS: ${ws.readyState}`);
       ws.close();
       //if (ws.readyState == 1)

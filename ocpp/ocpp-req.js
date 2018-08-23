@@ -6,6 +6,9 @@ var os = require('os');
 var fs = require('fs');
 const uuidv4 = require('uuid/v4');
 
+const debug = require('debug')('anl:ocpp:req');
+
+
 module.exports = function(RED) {
   function OcppRequestNode(config) {
     RED.nodes.createNode(this, config);
@@ -53,10 +56,14 @@ module.exports = function(RED) {
           msg.ocpp.data = msg.payload.data || cmddata;
 
           if (!msg.ocpp.command){
-            node.error('Missing Command in SOAP request message');
+            let errmsg = 'Missing Command in SOAP request message';
+            node.error(errmsg);
+            debug(errmsg);
             return;
           } else if (!msg.ocpp.data){
-            node.error('Missing Data in SOAP request message');
+            let errmsg = 'Missing Data in SOAP request message';
+            node.error(errmsg);
+            debug(errmsg);
             return;
           }
 
@@ -79,11 +86,13 @@ module.exports = function(RED) {
           let msgid = `<MessageID xmlns="${addressing}">${msg.ocpp.MessageId}</MessageID>`;
           client.addSoapHeader(msgid);
 
-          if (msg.ocpp && msg.ocpp.command)
+          if (msg.ocpp && msg.ocpp.command){
             node.status({fill: 'green', shape: 'dot', text: `sending: ${msg.ocpp.command}`});
-          else
+            debug(`sending: ${msg.ocpp.command}`);
+          } else {
             node.status({fill: 'red', shape: 'dot', text: 'MISSING COMMAND'});
-
+            debug('MISSING COMMAND');
+          }
           if (node.pathlog == '') node.logging = false;
           if (node.logging){
             client.on('request', function(xmlSoap, xchgId){
@@ -95,7 +104,7 @@ module.exports = function(RED) {
             });
 
             client.on('soapError', function(err, xchgId){
-              console.log('got error:', err.message);
+              debug(`got SOAP error: ${err.message}`);
               //logData('error', err);
             });
 
@@ -124,7 +133,6 @@ module.exports = function(RED) {
 
     function logData(type, data) {
       if (node.logging === true){ // only log if no errors w/ log file
-        console.log('Sup Dog2');
         // set a timestamp for the logged item
         let date = new Date().toLocaleString();
         let dataStr = '<no data>';
