@@ -143,11 +143,11 @@ module.exports = function(RED) {
     });
 
     ws.on('ping', function(){
-      //console.log('JAVADOG: Got Ping');
+      debug('Got Ping');
       ws.send('pong');
     });
     ws.on('pong', function(){
-      //console.log('JAVADOG: Got Pong');
+      debug('Got Pong');
     });
 
 
@@ -158,12 +158,35 @@ module.exports = function(RED) {
         let request = [];
         let messageTypeStr = ['unknown', 'unknown', 'request', 'replied', 'error'];
 
+        debug(JSON.stringify(msg));
+
         request[msgType] = msg.payload.msgType || CALL;
         request[msgId] = msg.payload.MessageId || uuidv4();
 
         if (request[msgType] == CALL){
-          request[msgAction] = msg.payload.command;
-          request[msgCallPayload] = msg.payload.data || {};
+          request[msgAction] = msg.payload.command || node.command;
+          
+          if (!request[msgAction]){
+            const errStr = 'ERROR: Missing Command in JSON request message'
+            node.error(errStr);
+            debug(errStr);
+            return;
+          } 
+          
+  
+          let cmddata;
+          if (node.cmddata){
+            cmddata = JSON.parse(node.cmddata);
+          }
+
+          request[msgCallPayload] = msg.payload.data || cmddata || {};
+          if (!request[msgCallPayload]){
+            const errStr = 'ERROR: Missing Data in JSON request message';
+            node.error(errStr);
+            debug(errStr);
+            return;
+          }
+  
           node.reqKV[request[msgId]] = request[msgAction];
         } else {
           request[msgResPayload] = msg.payload.data || {};
