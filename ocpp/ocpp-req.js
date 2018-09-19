@@ -87,8 +87,8 @@ module.exports = function(RED) {
           client.addSoapHeader(msgid);
 
           if (msg.ocpp && msg.ocpp.command){
-            node.status({fill: 'green', shape: 'dot', text: `sending: ${msg.ocpp.command}`});
-            debug(`sending: ${msg.ocpp.command}`);
+            node.status({fill: 'green', shape: 'dot', text: `request out: ${msg.ocpp.command}`});
+            debug(`request out: ${msg.ocpp.command}`);
           } else {
             node.status({fill: 'red', shape: 'dot', text: 'MISSING COMMAND'});
             debug('MISSING COMMAND');
@@ -122,6 +122,8 @@ module.exports = function(RED) {
             } else {
               // put the response to the request in the message payload and send it out the flow
               msg.payload.data = response;
+              node.status({fill: 'green', shape: 'dot', text: `response in: ${msg.ocpp.command}`});
+              debug(`response in: ${msg.ocpp.command}`);
               node.send(msg);
             }
           });

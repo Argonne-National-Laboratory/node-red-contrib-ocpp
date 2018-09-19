@@ -1012,7 +1012,9 @@ module.exports = function(RED) {
           return;
         }
       } else {
-        node.warn('OCPP JSON request node missing data for message:' + msg.ocpp.command);
+        const errStr = `OCPP JSON request node missing data for message: ${msg.ocpp.command}`;
+        debug(errStr);
+        node.warn(errStr);
         return;
       }
 

@@ -165,18 +165,24 @@ module.exports = function(RED) {
 
         if (request[msgType] == CALL){
           request[msgAction] = msg.payload.command || node.command;
-          
+
           if (!request[msgAction]){
-            const errStr = 'ERROR: Missing Command in JSON request message'
+            const errStr = 'ERROR: Missing Command in JSON request message';
             node.error(errStr);
             debug(errStr);
             return;
-          } 
-          
-  
+          }
+
+
           let cmddata;
           if (node.cmddata){
-            cmddata = JSON.parse(node.cmddata);
+            try {
+              cmddata = JSON.parse(node.cmddata);
+            } catch (e){
+              node.warn('OCPP JSON client node invalid payload.data for message (' + msg.ocpp.command + '): ' + e.message);
+              return;
+            }
+
           }
 
           request[msgCallPayload] = msg.payload.data || cmddata || {};
@@ -186,7 +192,7 @@ module.exports = function(RED) {
             debug(errStr);
             return;
           }
-  
+
           node.reqKV[request[msgId]] = request[msgAction];
         } else {
           request[msgResPayload] = msg.payload.data || {};
