@@ -121,6 +121,8 @@ module.exports = function(RED) {
 
         });
 
+        node.status({fill: 'green', shape: 'dot', text: `message in: ${msg.ocpp.command}`});
+        debug(`message in: ${msg.ocpp.command}`);
         node.send(msg);
       } else if (msgParsed[msgType] == CALLRESULT) {
 
@@ -136,6 +138,8 @@ module.exports = function(RED) {
           msg.ocpp.command = 'unknown';
         }
 
+        node.status({fill: 'green', shape: 'dot', text: `response in: ${msg.ocpp.command}`});
+        debug(`response in: ${msg.ocpp.command}`);
         node.send(msg);
 
       }
@@ -201,6 +205,7 @@ module.exports = function(RED) {
         logData(messageTypeStr[request[msgType]], JSON.stringify(request).replace(/,/g, ', '));
 
         debug(`Sending message: ${request[msgAction]}, ${request}`);
+        node.status({fill: 'green', shape: 'dot', text: `request out: ${request[msgAction]}`});
 
         ws.send(JSON.stringify(request));
       }
