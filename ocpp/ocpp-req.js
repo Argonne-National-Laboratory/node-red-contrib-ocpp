@@ -2,9 +2,9 @@
 
 var path = require('path');
 var soap = require('soap');
-var os = require('os');
-var fs = require('fs');
 const uuidv4 = require('uuid/v4');
+const Logger = require('./utils/logdata');
+
 
 const debug = require('debug')('anl:ocpp:req');
 
@@ -27,6 +27,9 @@ module.exports = function(RED) {
     this.pathlog = config.pathlog;
 
     node.status({fill: 'blue', shape: 'dot', text: `waiting to send: ${node.cbId}`});
+
+    const logger = new Logger(this, this.pathlog, this.name);
+    logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
 
     this.on('input', function(msg) {
 
@@ -96,11 +99,11 @@ module.exports = function(RED) {
           if (node.pathlog == '') node.logging = false;
           if (node.logging){
             client.on('request', function(xmlSoap, xchgId){
-              logData('request', xmlSoap);
+              logger.log('request', xmlSoap);
             });
 
             client.on('response', function(xmlSoap, fullinfo, xchgId){
-              logData('replied', xmlSoap);
+              logger.log('replied', xmlSoap);
             });
 
             client.on('soapError', function(err, xchgId){
@@ -132,30 +135,6 @@ module.exports = function(RED) {
       });
 
     });
-
-    function logData(type, data) {
-      if (node.logging === true){ // only log if no errors w/ log file
-        // set a timestamp for the logged item
-        let date = new Date().toLocaleString();
-        let dataStr = '<no data>';
-        if (typeof data === 'string'){
-          dataStr = data.replace(/[\n\r]/g, '');
-        }
-        // create the logged info from a template
-        let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
-
-        // create/append the log info to the file
-        fs.appendFile(node.pathlog, logInfo, (err) => {
-          if (err){
-            node.error(`Error writing to log file: ${err}`);
-            // If something went wrong then turn off logging
-            node.logging = false;
-            if (node.log) node.log = null;
-          }
-        });
-      }
-    }
-
 
   }
   // register our node

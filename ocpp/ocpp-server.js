@@ -1,6 +1,5 @@
 'use strict';
 
-// const http = require('http');
 const express = require('express');
 const soap = require('soap');
 const fs = require('fs');
@@ -8,10 +7,8 @@ const path = require('path');
 const events = require('events');
 const uuidv4 = require('uuid/v4');
 const xmlconvert = require('xml-js');
-const os = require('os');
 const expressws = require('express-ws');
-
-
+const Logger = require('./utils/logdata');
 const debug = require('debug')('anl:ocpp:server');
 
 const EventEmitter = events.EventEmitter;
@@ -78,6 +75,11 @@ module.exports = function(RED) {
     if (!this.enabled16 && !this.enabled15){
       node.status({fill: 'red', shape: 'dot', text: 'Disabled'});
     }
+
+    const logger = new Logger(this, this.pathlog, this.name);
+    logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
+
+
     // read in the soap definition
     let wsdl15 = fs.readFileSync(path.join(__dirname, 'ocpp_centralsystemservice_1.5_final.wsdl'), 'utf8');
     let wsdl16 = fs.readFileSync(path.join(__dirname, 'OCPP_CentralSystemService_1.6.wsdl'), 'utf8');
@@ -233,7 +235,7 @@ module.exports = function(RED) {
           return addHeaders(methodName, args, headers, 1.5);
         });
 
-        soapServer15.log = (node.logging) ? logData : null;
+        soapServer15.log = (node.logging) ? logger.log : null;
       }
 
       if (node.enabled16){
@@ -242,12 +244,12 @@ module.exports = function(RED) {
           return addHeaders(methodName, args, headers, 1.6);
         });
 
-        soapServer16.log = (node.logging) ? logData : null;
+        soapServer16.log = (node.logging) ? logger.log : null;
       }
 
       if (node.enabled16j){
         const wspath = `${node.svcPath16j}/:cbid`;
-        logData('info', `Ready to recieve websocket requests on ${wspath}`);
+        logger.log('info', `Ready to recieve websocket requests on ${wspath}`);
         debug(`ws path = ${wspath}`);
 
         expressServer.ws(wspath, function(ws, req, next) {
@@ -277,7 +279,7 @@ module.exports = function(RED) {
           ee.emit(req.params.cbid + CBIDCONPOSTFIX);
 
           let eventname = req.params.cbid + REQEVTPOSTFIX;
-          logData('info', `Websocket connecting to chargebox: ${req.params.cbid}`);
+          logger.log('info', `Websocket connecting to chargebox: ${req.params.cbid}`);
 
 
           wsrequest = (data, cb) => {
@@ -289,7 +291,7 @@ module.exports = function(RED) {
             request[msgAction] = data.ocpp.command;
             request[msgCallPayload] = data.ocpp.data || {};
 
-            logData('request', JSON.stringify(request).replace(/,/g, ', '));
+            logger.log('request', JSON.stringify(request).replace(/,/g, ', '));
 
             ee.once(request[msgId], (retData) => {
               cb(err, retData);
@@ -353,7 +355,7 @@ module.exports = function(RED) {
               msgParsed = JSON.parse(msgIn);
             }
 
-            logData(msgTypeStr[msgParsed[msgType] - CALL], msgIn);
+            logger.log(msgTypeStr[msgParsed[msgType] - CALL], msgIn);
 
             msg.ocpp.MessageId = msgParsed[msgId];
             msg.ocpp.msgType = msgParsed[msgType];
@@ -389,7 +391,7 @@ module.exports = function(RED) {
                 response[msgId] = msgParsed[msgId];
                 response[msgResPayload] = returnMsg;
 
-                logData(msgTypeStr[response[msgType] - CALL], JSON.stringify(response).replace(/,/g, ', '));
+                logger.log(msgTypeStr[response[msgType] - CALL], JSON.stringify(response).replace(/,/g, ', '));
 
                 ws.send(JSON.stringify(response));
 
@@ -579,30 +581,30 @@ module.exports = function(RED) {
       node.send(msg);
     };
 
-    function logData(type, data) {
-      if (node.logging === true){ // only log if no errors w/ log file
-        // set a timestamp for the logged item
-        let date = new Date().toLocaleString();
-        let dataStr = '<no data>';
-        if (typeof data === 'string'){
-          dataStr = data.replace(/[\n\r]/g, '');
-        }
-        // create the logged info from a template
-        // let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data} ${os.EOL}`;
-        let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
+    // function logData(type, data) {
+    //   if (node.logging === true){ // only log if no errors w/ log file
+    //     // set a timestamp for the logged item
+    //     let date = new Date().toLocaleString();
+    //     let dataStr = '<no data>';
+    //     if (typeof data === 'string'){
+    //       dataStr = data.replace(/[\n\r]/g, '');
+    //     }
+    //     // create the logged info from a template
+    //     // let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data} ${os.EOL}`;
+    //     let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
 
 
-        // create/append the log info to the file
-        fs.appendFile(node.pathlog, logInfo, (err) => {
-          if (err){
-            node.error(`Error writing to log file: ${err}`);
-            // If something went wrong then turn off logging
-            node.logging = false;
-            if (node.log) node.log = null;
-          }
-        });
-      }
-    }
+    //     // create/append the log info to the file
+    //     fs.appendFile(node.pathlog, logInfo, (err) => {
+    //       if (err){
+    //         node.error(`Error writing to log file: ${err}`);
+    //         // If something went wrong then turn off logging
+    //         node.logging = false;
+    //         if (node.log) node.log = null;
+    //       }
+    //     });
+    //   }
+    // }
 
 
   }
@@ -659,7 +661,7 @@ module.exports = function(RED) {
     debug('Starting CP Server Node');
 
     RED.nodes.createNode(this, config);
-    let node = this;
+    const node = this;
 
     node.status({fill: 'blue', shape: 'ring', text: 'Waiting...'});
 
@@ -679,10 +681,13 @@ module.exports = function(RED) {
     this.pathlog = config.pathlog;
     this.name = config.name || 'OCPP CP Server Port ' + config.port;
 
-
     if (!this.enabled16 && !this.enabled15){
       node.status({fill: 'red', shape: 'dot', text: 'Disabled'});
     }
+
+    const logger = new Logger(this, this.pathlog, this.name);
+    logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
+
     // read in the soap definition
     let wsdl15 = fs.readFileSync(path.join(__dirname, 'ocpp_chargepointservice_1.5_final.wsdl'), 'utf8');
     let wsdl16 = fs.readFileSync(path.join(__dirname, 'OCPP_ChargePointService_1.6.wsdl'), 'utf8');
@@ -746,7 +751,6 @@ module.exports = function(RED) {
 
     wsdlops = wsdljs['wsdl:definitions']['wsdl:portType']['wsdl:operation'];
 
-
     wsdlops.forEach(function(op) {
       ocppService15[wsdlservice][wsdlport][op._attributes.name] = function(args, cb, headers){ ocppFunc('1.5', op._attributes.name, args, cb, headers); };
     }, this);
@@ -809,11 +813,11 @@ module.exports = function(RED) {
 
         if (node.enabled15){
           soapServer15 = soap.listen(expressServer, { path: node.svcPath15, services: ocppService15, xml: wsdl15});
-          soapServer15.log = (node.logging) ? logData : null;
+          soapServer15.log = (node.logging) ? logger.log : null;
         }
         if (node.enabled16){
           soapServer16 = soap.listen(expressServer, { path: node.svcPath16, services: ocppService16, xml: wsdl16});
-          soapServer16.log = (node.logging) ? logData : null;
+          soapServer16.log = (node.logging) ? logger.log : null;
         }
 
       });
@@ -918,30 +922,30 @@ module.exports = function(RED) {
       node.send(msg);
     };
 
-    function logData(type, data) {
-      if (node.logging === true){ // only log if no errors w/ log file
-        // set a timestamp for the logged item
-        let date = new Date().toLocaleString();
-        let dataStr = '<no data>';
-        if (typeof data === 'string'){
-          dataStr = data.replace(/[\n\r]/g, '');
-        }
-        // create the logged info from a template
-        // let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data} ${os.EOL}`;
-        let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
+    // function logData(type, data) {
+    //   if (node.logging === true){ // only log if no errors w/ log file
+    //     // set a timestamp for the logged item
+    //     let date = new Date().toLocaleString();
+    //     let dataStr = '<no data>';
+    //     if (typeof data === 'string'){
+    //       dataStr = data.replace(/[\n\r]/g, '');
+    //     }
+    //     // create the logged info from a template
+    //     // let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${data} ${os.EOL}`;
+    //     let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
 
 
-        // create/append the log info to the file
-        fs.appendFile(node.pathlog, logInfo, (err) => {
-          if (err){
-            node.error(`Error writing to log file: ${err}`);
-            // If something went wrong then turn off logging
-            node.logging = false;
-            if (node.log) node.log = null;
-          }
-        });
-      }
-    }
+    //     // create/append the log info to the file
+    //     fs.appendFile(node.pathlog, logInfo, (err) => {
+    //       if (err){
+    //         node.error(`Error writing to log file: ${err}`);
+    //         // If something went wrong then turn off logging
+    //         node.logging = false;
+    //         if (node.log) node.log = null;
+    //       }
+    //     });
+    //   }
+    // }
 
   }
 

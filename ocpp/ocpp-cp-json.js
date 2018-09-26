@@ -1,12 +1,10 @@
 'use strict';
 
-const os = require('os');
-const fs = require('fs');
 const Websocket = require('ws');
 const uuidv4 = require('uuid/v4');
 const events = require('events');
 const EventEmitter = events.EventEmitter;
-
+const Logger = require('./utils/logdata');
 const debug = require('debug')('anl:ocpp:cp-json');
 
 let ee = new EventEmitter();
@@ -45,9 +43,14 @@ module.exports = function(RED) {
     this.logging = config.log || false;
     this.pathlog = config.pathlog;
 
+
+    const logger = new Logger(this, this.pathlog, this.name);
+    logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
+
+
     let csUrl = `${this.remotecs.url}/${this.cbId}`;
 
-    logData('info', `Making websocket connectio to ${csUrl}`);
+    logger.log('info', `Making websocket connectio to ${csUrl}`);
 
     let ws = new Websocket(csUrl, {handshaketimeout: 5000});
 
@@ -56,7 +59,7 @@ module.exports = function(RED) {
       node.wsconnected = true;
     });
     ws.on('close', function(){
-      logData('info', `Closing websocket connectio to ${csUrl}`);
+      logger.log('info', `Closing websocket connectio to ${csUrl}`);
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
       node.wsconnected = false;
     });
@@ -88,7 +91,7 @@ module.exports = function(RED) {
       }
 
 
-      logData(msgTypeStr[msgParsed[msgType]], JSON.stringify(msgParsed));
+      logger.log(msgTypeStr[msgParsed[msgType]], JSON.stringify(msgParsed));
 
       if (msgParsed[msgType] == CALL) {
         // msg.msgId = msgParsed[msgId];
@@ -115,7 +118,7 @@ module.exports = function(RED) {
           response[msgId] = msgParsed[msgId];
           response[msgResPayload] = returnMsg;
 
-          logData(msgTypeStr[response[msgType]], JSON.stringify(response).replace(/,/g, ', '));
+          logger.log(msgTypeStr[response[msgType]], JSON.stringify(response).replace(/,/g, ', '));
 
           ws.send(JSON.stringify(response));
 
@@ -202,7 +205,7 @@ module.exports = function(RED) {
           request[msgResPayload] = msg.payload.data || {};
         }
 
-        logData(messageTypeStr[request[msgType]], JSON.stringify(request).replace(/,/g, ', '));
+        logger.log(messageTypeStr[request[msgType]], JSON.stringify(request).replace(/,/g, ', '));
 
         debug(`Sending message: ${request[msgAction]}, ${request}`);
         node.status({fill: 'green', shape: 'dot', text: `request out: ${request[msgAction]}`});
@@ -213,37 +216,13 @@ module.exports = function(RED) {
 
     this.on('close', function(){
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
-      logData('info', 'Websocket closed');
+      logger.log('info', 'Websocket closed');
       debug('Closing CP client JSON node..');
       //console.log(`WS STATUS: ${ws.readyState}`);
       ws.close();
       //if (ws.readyState == 1)
       //ws.close();
     });
-
-    function logData(type, data) {
-      if (node.logging === true){ // only log if no errors w/ log file
-        // set a timestamp for the logged item
-        let date = new Date().toLocaleString();
-        let dataStr = '<no data>';
-        if (typeof data === 'string'){
-          dataStr = data.replace(/[\n\r]/g, '');
-        }
-        // create the logged info from a template
-        let logInfo = `${date} \t node: ${node.name} \t type: ${type} \t data: ${dataStr} ${os.EOL}`;
-
-        // create/append the log info to the file
-        fs.appendFile(node.pathlog, logInfo, (err) => {
-          if (err){
-            node.error(`Error writing to log file: ${err}`);
-            // If something went wrong then turn off logging
-            node.logging = false;
-            if (node.log) node.log = null;
-          }
-        });
-      }
-    }
-
 
   }
   // register our node
