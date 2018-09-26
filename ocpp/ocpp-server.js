@@ -72,13 +72,13 @@ module.exports = function(RED) {
     this.pathlog = config.pathlog;
     this.name = config.name || 'OCPP Server Port ' + config.port;
 
-    if (!this.enabled16 && !this.enabled15){
+    if (!this.enabled16 && !this.enabled15 && !this.enabled16j){
       node.status({fill: 'red', shape: 'dot', text: 'Disabled'});
     }
 
+    // Setup the logger
     const logger = new Logger(this, this.pathlog, this.name);
     logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
-
 
     // read in the soap definition
     let wsdl15 = fs.readFileSync(path.join(__dirname, 'ocpp_centralsystemservice_1.5_final.wsdl'), 'utf8');
@@ -106,10 +106,7 @@ module.exports = function(RED) {
         cb(returnMsg);
       });
 
-      // let soapSvr = (ocppVer == "1.5") ? soapServer15 : soapServer16;
-
       let cbi = headers.chargeBoxIdentity.$value || headers.chargeBoxIdentity || 'Unknown';
-
 
       // let action = headers.Action.$value||headers.Action
       let action = command;
@@ -138,7 +135,6 @@ module.exports = function(RED) {
     ocppService15[wsdlservice][wsdlport] = {};
 
     wsdlops = wsdljs['wsdl:definitions']['wsdl:portType']['wsdl:operation'];
-
 
     wsdlops.forEach(function(op) {
       ocppService15[wsdlservice][wsdlport][op._attributes.name] = function(args, cb, headers){ ocppFunc('1.5', op._attributes.name, args, cb, headers); };
@@ -173,26 +169,6 @@ module.exports = function(RED) {
     let wsrequest;
 
     x.on('connection', function connection(){
-      //const ip = req.connection.remoteAddress;
-      //console.log(`IP Address = ${ip}`);
-      /*
-             console.log('im here....');
-             console.log({ws});
-             let upgradeReq = ws.upgradeReq;
-             console.log({upgradeReq});
-             let params = ws.upgradeReq.params;
-             console.log({params});
-
-             console.log(ws.upgradeReq.params.cbid);
-            if (ws.upgradeReq.params && ws.upgradeReq.params.cbid){
-                let eventName = ws.upgradeReq.params.cbid + REQEVTPOSTFIX;
-                if (ee.eventNames().indexOf(eventName) == -1){
-                    //console.log( `Need to add event ${eventName}`);
-                    //ee.on(eventname, wsrequest);
-                }
-
-            }
-*/
     });
 
 

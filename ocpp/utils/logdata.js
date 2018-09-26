@@ -2,6 +2,8 @@
 
 const os = require('os');
 const fs = require('fs');
+const debug = require('debug')('anl:ocpp:utils:logdata');
+
 
 class LogData {
   constructor(node, logpath, label = 'info') {
@@ -42,6 +44,7 @@ class LogData {
       fs.appendFile(this.logpath, logInfo, err => {
         if (err) {
           this._node.error(`Error writing to log file: ${err}`);
+          debug(`Error writing to log file: ${err} from node ${this._node.name}`);
           // If something went wrong then turn off logging
           this.enabled = false;
         }

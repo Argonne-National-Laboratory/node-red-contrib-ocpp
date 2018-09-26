@@ -47,7 +47,6 @@ module.exports = function(RED) {
     const logger = new Logger(this, this.pathlog, this.name);
     logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
 
-
     let csUrl = `${this.remotecs.url}/${this.cbId}`;
 
     logger.log('info', `Making websocket connectio to ${csUrl}`);
