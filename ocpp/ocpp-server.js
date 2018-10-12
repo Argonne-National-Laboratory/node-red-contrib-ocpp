@@ -960,7 +960,7 @@ module.exports = function(RED) {
       eventname = msg.ocpp.chargeBoxIdentity + REQEVTPOSTFIX;
 
       if (ee.listenerCount(eventname) < 1) {
-        node.status({fill: 'grey', shape: 'ring', text: `Not connect to ${msg.ocpp.chargeBoxIdentity}`});
+        node.status({fill: 'grey', shape: 'ring', text: `Not connected to ${msg.ocpp.chargeBoxIdentity}`});
         return;
       }
 
