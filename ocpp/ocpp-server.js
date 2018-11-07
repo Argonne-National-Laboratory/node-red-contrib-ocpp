@@ -53,6 +53,8 @@ module.exports = function(RED) {
 
     node.status({fill: 'blue', shape: 'ring', text: 'Waiting...'});
 
+
+
     // ee = new EventEmitter();
 
     ee.on('error', (err) => {
@@ -79,6 +81,12 @@ module.exports = function(RED) {
     // Setup the logger
     const logger = new Logger(this, this.pathlog, this.name);
     logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
+
+    function logData(type, data) {
+      logger.log(type, data);
+    }
+
+
 
     // read in the soap definition
     let wsdl15 = fs.readFileSync(path.join(__dirname, 'ocpp_centralsystemservice_1.5_final.wsdl'), 'utf8');
@@ -211,7 +219,7 @@ module.exports = function(RED) {
           return addHeaders(methodName, args, headers, 1.5);
         });
 
-        soapServer15.log = (node.logging) ? logger.log : null;
+        soapServer15.log = (node.logging) ? logData : null;
       }
 
       if (node.enabled16){
@@ -220,7 +228,7 @@ module.exports = function(RED) {
           return addHeaders(methodName, args, headers, 1.6);
         });
 
-        soapServer16.log = (node.logging) ? logger.log : null;
+        soapServer16.log = (node.logging) ? logData : null;
       }
 
       if (node.enabled16j){
@@ -664,6 +672,11 @@ module.exports = function(RED) {
     const logger = new Logger(this, this.pathlog, this.name);
     logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
 
+    function logData(type, data) {
+      logger.log(type, data);
+    }
+
+
     // read in the soap definition
     let wsdl15 = fs.readFileSync(path.join(__dirname, 'ocpp_chargepointservice_1.5_final.wsdl'), 'utf8');
     let wsdl16 = fs.readFileSync(path.join(__dirname, 'OCPP_ChargePointService_1.6.wsdl'), 'utf8');
@@ -789,11 +802,11 @@ module.exports = function(RED) {
 
         if (node.enabled15){
           soapServer15 = soap.listen(expressServer, { path: node.svcPath15, services: ocppService15, xml: wsdl15});
-          soapServer15.log = (node.logging) ? logger.log : null;
+          soapServer15.log = (node.logging) ? logData : null;
         }
         if (node.enabled16){
           soapServer16 = soap.listen(expressServer, { path: node.svcPath16, services: ocppService16, xml: wsdl16});
-          soapServer16.log = (node.logging) ? logger.log : null;
+          soapServer16.log = (node.logging) ? logData : null;
         }
 
       });
