@@ -16,7 +16,7 @@ Run the following command in the root directory of your Node-RED install
 
 # Requirements
 
-The package currently requires [Node.js 6.5][1] or higher.
+The package currently requires [Node.js 8.5][1] or higher.
 
 # Nodes
 
@@ -27,6 +27,7 @@ The package currently requires [Node.js 6.5][1] or higher.
 * [CP client JSON](#cp-client-json)
 * [server response](#server-response)
 * [CS request JSON](#cs-request-json)
+* [examples](#examples)
 
 
 _(nodes that begin with CS refer to those that emulate a Central System. Those with CP refer to those that emulate a Charge Point/EVSE)_
@@ -135,7 +136,7 @@ The payload portion varies depending on the command and EVSE charge point vendor
 
 ---
 ## CP request SOAP
-This node is used to emulate a EVSE charge point station and is capable of making requests to a Central System service that support either protocol 1.5 or 1.6 SOAP. It's behavior is similar to that of the *[CS request SOAP](#cs-request-soap)* node.
+This node is used to emulate a EVSE charge point station and is capable of making requests to a Central System service that support either protocol 1.5 or 1.6 SOAP. Its behavior is similar to that of the *[CS request SOAP](#cs-request-soap)* node.
 
 To emulate a EVSE charge point station that utilizes OCPP 1.6 JSON, use the *[CP client JSON](#cp-client-json)* node.
 
@@ -210,6 +211,12 @@ Use this node to emulate an EVSE charge point station that supports OCPP protoco
 ## CS request JSON
 Use this node to make make requests to an EVSE charge point station that support OCPP 1.6 JSON. Its behavior and functionality are similar to that of the *[CS request SOAP](#cs_request-soap)* node with the exception that it only support OCPP 1.6 JSON commands.
 
+
+## examples
+
+![alt text](./images/clippednode-redexample.png "example flow found in the examples folder")
+
+In the root of the OCPP node module folder is a folder named examples. This is were you can find example flows that may be useful in setting up your OCCP situation. Currently a single example file exists which you can import into node-red that sets up a Central System node with a few basic Charge Point nodes. This is by no means a full production example, but just a starting point for those who may be intereted in a way to setup the nodes.
 
 
 # Authors
