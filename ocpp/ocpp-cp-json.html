@@ -92,17 +92,16 @@
         <select id="node-input-command">
             <option value="">&lt;None&gt;</option>
             <option value="Authorize">Authorize</option>
-            <option value="BootNotification">BootNotification</option>
-            <option value="DataTransfer">DataTransfer</option>
-            <option value="DiagnosticsStatusNotification">DiagnosticsStatusNotification</option>
-            <option value="FIrmwareStatusNotification">FIrmwareStatusNotification</option>
+            <option value="BootNotification">Boot Notification</option>
+            <option value="DataTransfer">Data Transfer</option>
+            <option value="Diagnostics Status Notification">DiagnosticsStatusNotification</option>
+            <option value="Firmware Status Notification">FirmwareStatusNotification</option>
             <option value="Heartbeat">Heartbeat</option>
-            <option value="MeterValues">MeterValues</option>
-            <option value="StartTransaction">StartTransaction</option>
-            <option value="StatusNotification">StatusNotification</option>
-            <option value="StopTransaction">StopTransaction</option>
+            <option value="MeterValues">Meter Values</option>
+            <option value="StartTransaction">Start Transaction</option>
+            <option value="StatusNotification">Status Notification</option>
+            <option value="StopTransaction">Stop Transaction</option>
         </select><br/>
-        <p>* = 1.6 command only</p>
     </div>
 
     <div class="form-row">
@@ -170,7 +169,7 @@
             <dd><code>msg.ocpp</code> objcet containing ocpp related information
                 <ul>
                     <li><code>MessageId</code>: the unique message identifier</li>
-                    <li><msgType</code>: 2 = CALL/Request, 3= CALLRESPONSE/Reply/response</li>
+                    <li>msgType</code>: 2 = CALL/Request, 3= CALLRESPONSE/Reply/response</li>
                     <li><code>command</code>: the request command sent</li>
                     <li><code>data</code>: object containing the parameters passed to the EVSE for the request (if any)</li>
                 </ul>

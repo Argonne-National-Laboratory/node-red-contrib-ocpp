@@ -1,0 +1,789 @@
+[
+    {
+        "id": "acc9f35a.ec54d8",
+        "type": "tab",
+        "label": "Flow 2",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "44d45791.af575",
+        "type": "inject",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 130,
+        "y": 730,
+        "wires": [
+            [
+                "3b4b7493.9187a4"
+            ]
+        ]
+    },
+    {
+        "id": "8cee8d67.a2e858",
+        "type": "CS server",
+        "z": "acc9f35a.ec54d8",
+        "name": "CentralSystem@8834",
+        "port": "8834",
+        "enabled15": true,
+        "path15": "/ocpp15s",
+        "enabled16": true,
+        "path16": "/ocpp16s",
+        "enabled16j": true,
+        "path16j": "/ocpp",
+        "log": true,
+        "pathlog": "c:\\tmp\\OCPP__.log",
+        "x": 140,
+        "y": 130,
+        "wires": [
+            [
+                "68a8235f.451e04",
+                "7dcf2c29.43a464"
+            ]
+        ]
+    },
+    {
+        "id": "7dcf2c29.43a464",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 230,
+        "y": 270,
+        "wires": []
+    },
+    {
+        "id": "3b4b7493.9187a4",
+        "type": "CP client JSON",
+        "z": "acc9f35a.ec54d8",
+        "name": "EVSE-001",
+        "cbId": "evse-001",
+        "remotecs": "92124697.6658f",
+        "ocppver": "1.6j",
+        "command": "Heartbeat",
+        "cmddata": "{}",
+        "log": false,
+        "pathlog": "",
+        "x": 320,
+        "y": 730,
+        "wires": [
+            [
+                "48f62a62.5a7414"
+            ]
+        ]
+    },
+    {
+        "id": "2e1a65fd.686fe2",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 710,
+        "y": 770,
+        "wires": []
+    },
+    {
+        "id": "a8e1cfda.c3b0a",
+        "type": "CP client JSON",
+        "z": "acc9f35a.ec54d8",
+        "name": "EVSE-002",
+        "cbId": "evse-002",
+        "remotecs": "92124697.6658f",
+        "ocppver": "1.6j",
+        "command": "Heartbeat",
+        "cmddata": "{}",
+        "log": false,
+        "pathlog": "",
+        "x": 310,
+        "y": 900,
+        "wires": [
+            [
+                "e6afde22.51b798"
+            ]
+        ]
+    },
+    {
+        "id": "e6afde22.51b798",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 460,
+        "y": 900,
+        "wires": []
+    },
+    {
+        "id": "21f0f480.5ef094",
+        "type": "inject",
+        "z": "acc9f35a.ec54d8",
+        "name": "Empty trigger",
+        "topic": "",
+        "payload": "{}",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 140,
+        "y": 900,
+        "wires": [
+            [
+                "a8e1cfda.c3b0a"
+            ]
+        ]
+    },
+    {
+        "id": "68a8235f.451e04",
+        "type": "switch",
+        "z": "acc9f35a.ec54d8",
+        "name": "OCPP CS Command Switch",
+        "property": "payload.command",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "BootNotification",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Authorize",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "Heartbeat",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "StatusNotification",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "MeterValues",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "StartTransaction",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "StopTransaction",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 8,
+        "x": 399,
+        "y": 135,
+        "wires": [
+            [
+                "7194ed20.873d8c"
+            ],
+            [
+                "e936416b.681468"
+            ],
+            [
+                "6c952053.e7be8"
+            ],
+            [
+                "243ae570.3009e2",
+                "ed70d827.974808"
+            ],
+            [
+                "243ae570.3009e2",
+                "ed70d827.974808",
+                "b9839e55.58e7c8",
+                "a78523d9.80027"
+            ],
+            [
+                "af7e1d23.d8562",
+                "ed70d827.974808"
+            ],
+            [
+                "ed70d827.974808",
+                "e936416b.681468"
+            ],
+            [
+                "ed70d827.974808"
+            ]
+        ]
+    },
+    {
+        "id": "87468474.e9785",
+        "type": "server response",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "x": 899,
+        "y": 156,
+        "wires": []
+    },
+    {
+        "id": "7194ed20.873d8c",
+        "type": "function",
+        "z": "acc9f35a.ec54d8",
+        "name": "BootNotification",
+        "func": "msg.payload = {\n    interval: 120,\n    currentTime: new Date().toISOString(),\n    status: \"Accepted\"\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 679,
+        "y": 36,
+        "wires": [
+            [
+                "87468474.e9785"
+            ]
+        ]
+    },
+    {
+        "id": "af7e1d23.d8562",
+        "type": "function",
+        "z": "acc9f35a.ec54d8",
+        "name": "Start Transaction",
+        "func": "msg.payload = {\n    idTagInfo: {\n        status: \"Accepted\",\n    },\n    transactionId: getRndInteger(0,100000)\n}\nreturn msg;\n\nfunction getRndInteger(min, max) {\n    return Math.floor(Math.random() * (max - min + 1) ) + min;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 689,
+        "y": 216,
+        "wires": [
+            [
+                "87468474.e9785"
+            ]
+        ]
+    },
+    {
+        "id": "8e8b7998.b5fea8",
+        "type": "function",
+        "z": "acc9f35a.ec54d8",
+        "name": "Stop Transaction",
+        "func": "msg.payload = { idTagInfo: { status: \"Accepted\"} };\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 889,
+        "y": 236,
+        "wires": [
+            [
+                "87468474.e9785"
+            ]
+        ]
+    },
+    {
+        "id": "6c952053.e7be8",
+        "type": "change",
+        "z": "acc9f35a.ec54d8",
+        "name": "Heartbeat",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "{}",
+                "tot": "json"
+            },
+            {
+                "t": "set",
+                "p": "payload.currentTime",
+                "pt": "msg",
+                "to": "$now()",
+                "tot": "jsonata"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 659,
+        "y": 114,
+        "wires": [
+            [
+                "87468474.e9785"
+            ]
+        ]
+    },
+    {
+        "id": "e936416b.681468",
+        "type": "change",
+        "z": "acc9f35a.ec54d8",
+        "name": "Generic Status=Accepted",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "{\"idTagInfo\":{\"status\":\"Accepted\"}}",
+                "tot": "json"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 709,
+        "y": 76,
+        "wires": [
+            [
+                "87468474.e9785",
+                "8f8ced11.203858"
+            ]
+        ]
+    },
+    {
+        "id": "243ae570.3009e2",
+        "type": "change",
+        "z": "acc9f35a.ec54d8",
+        "name": "Generic Return",
+        "rules": [
+            {
+                "t": "set",
+                "p": "ocpp.data",
+                "pt": "msg",
+                "to": "payload.data",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "{}",
+                "tot": "json"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 679,
+        "y": 156,
+        "wires": [
+            [
+                "87468474.e9785"
+            ]
+        ]
+    },
+    {
+        "id": "ed70d827.974808",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 530,
+        "y": 270,
+        "wires": []
+    },
+    {
+        "id": "b83cc432.dd05a",
+        "type": "inject",
+        "z": "acc9f35a.ec54d8",
+        "name": "get hb",
+        "topic": "",
+        "payload": "{\"command\":\"GetConfiguration\",\"data\":{\"key\":[\"HeartbeatInterval\"]}}",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 120,
+        "y": 470,
+        "wires": [
+            [
+                "644438bd.ddc77"
+            ]
+        ]
+    },
+    {
+        "id": "8f8ced11.203858",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 909,
+        "y": 56,
+        "wires": []
+    },
+    {
+        "id": "b9839e55.58e7c8",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload.data.meterValue[0].sampledValue[2]",
+        "x": 870,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "a78523d9.80027",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 750,
+        "y": 350,
+        "wires": []
+    },
+    {
+        "id": "644438bd.ddc77",
+        "type": "CS request JSON",
+        "z": "acc9f35a.ec54d8",
+        "name": "CS Req evse-001",
+        "remotecb": "2bafdaab.15b956",
+        "command": "GetConfiguration",
+        "cmddata": "",
+        "log": true,
+        "pathlog": "",
+        "x": 400,
+        "y": 460,
+        "wires": [
+            [
+                "dbdbed16.716bd8"
+            ]
+        ]
+    },
+    {
+        "id": "dbdbed16.716bd8",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 590,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "8e29e544.df0ec",
+        "type": "CP client JSON",
+        "z": "acc9f35a.ec54d8",
+        "name": "EVSE-003",
+        "cbId": "evse-003",
+        "remotecs": "92124697.6658f",
+        "ocppver": "1.6j",
+        "command": "Heartbeat",
+        "cmddata": "{}",
+        "log": false,
+        "pathlog": "",
+        "x": 310,
+        "y": 970,
+        "wires": [
+            [
+                "a548f73.e3c3288"
+            ]
+        ]
+    },
+    {
+        "id": "a548f73.e3c3288",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 460,
+        "y": 970,
+        "wires": []
+    },
+    {
+        "id": "1b5d0855.91b5a",
+        "type": "inject",
+        "z": "acc9f35a.ec54d8",
+        "name": "Send Heartbeat",
+        "topic": "",
+        "payload": "{\"command\":\"Heartbeat\",\"data\":{}}",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 140,
+        "y": 970,
+        "wires": [
+            [
+                "8e29e544.df0ec"
+            ]
+        ]
+    },
+    {
+        "id": "2d2fff0f.147418",
+        "type": "inject",
+        "z": "acc9f35a.ec54d8",
+        "name": "get hb evse-002",
+        "topic": "",
+        "payload": "{\"cbId\":\"evse-002\",\"command\":\"GetConfiguration\",\"data\":{\"key\":[\"HeartbeatInterval\"]}}",
+        "payloadType": "json",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 150,
+        "y": 550,
+        "wires": [
+            [
+                "644438bd.ddc77"
+            ]
+        ]
+    },
+    {
+        "id": "dc104c1f.79ca1",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "Basic OCPP Central System Server and supporting nodes",
+        "info": "Change the port address and paths to meet your needs.\nThis is a very basic (does represent a fully functional CS) example",
+        "x": 230,
+        "y": 30,
+        "wires": []
+    },
+    {
+        "id": "2138f556.ca99d2",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "Send request from the Central Server to JSON based Charge Points (EVSEs)",
+        "info": "",
+        "x": 290,
+        "y": 390,
+        "wires": []
+    },
+    {
+        "id": "48f62a62.5a7414",
+        "type": "switch",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "property": "payload.command",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "GetConfiguration",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 470,
+        "y": 730,
+        "wires": [
+            [
+                "a04f4e8e.2730b"
+            ],
+            [
+                "2e1a65fd.686fe2"
+            ]
+        ]
+    },
+    {
+        "id": "a04f4e8e.2730b",
+        "type": "function",
+        "z": "acc9f35a.ec54d8",
+        "name": "GetConf response",
+        "func": "let config = {\n    HeartbeatInterval: 20,\n}\n\nlet KeyValues = [];\n\nlet KeyValue = {\n    key: msg.payload.data.key[0],\n    value: config[msg.payload.data.key[0]],\n    readonly: true\n};\n\nKeyValues.push(KeyValue);\n\n// Copy over the request messageId to be used\n// in the response\nmsg.payload.MessageId = msg.ocpp.MessageId;\n\n// Our response data gets put into the payload.data\nmsg.payload.data = KeyValues;\n\n//\n// For responses to CS requests (such as GetConfig)\n// the CP JSON Client should set the message type to 3\nmsg.payload.msgType = 3;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 730,
+        "y": 730,
+        "wires": [
+            [
+                "a6651586.7ea81",
+                "ab7ccc5a.047d1"
+            ]
+        ]
+    },
+    {
+        "id": "94c69594.a51728",
+        "type": "link in",
+        "z": "acc9f35a.ec54d8",
+        "name": "EVSE001Response",
+        "links": [
+            "a6651586.7ea81"
+        ],
+        "x": 225,
+        "y": 690,
+        "wires": [
+            [
+                "3b4b7493.9187a4"
+            ]
+        ]
+    },
+    {
+        "id": "a6651586.7ea81",
+        "type": "link out",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "links": [
+            "94c69594.a51728"
+        ],
+        "x": 955,
+        "y": 730,
+        "wires": []
+    },
+    {
+        "id": "ab7ccc5a.047d1",
+        "type": "debug",
+        "z": "acc9f35a.ec54d8",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 790,
+        "y": 670,
+        "wires": []
+    },
+    {
+        "id": "4a0b014c.9f6e18",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "Target a different EVSE/cbId",
+        "info": "",
+        "x": 160,
+        "y": 510,
+        "wires": []
+    },
+    {
+        "id": "3e5c9b9f.d97564",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "Inject a command with data",
+        "info": "",
+        "x": 160,
+        "y": 430,
+        "wires": []
+    },
+    {
+        "id": "7741c50b.b6d9a4",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "React to GetConfiguration commands",
+        "info": "This would usually be a larger switch block.\nFor simplicity, we are only reacting to the\nGetConfiguration command (very basic).\nYou probably want a case for every OCPP command\nthat could possibly be sent from the CS.",
+        "x": 530,
+        "y": 690,
+        "wires": []
+    },
+    {
+        "id": "8300f4bc.9d2ae8",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "Inject the response back through the CP JSON client to be sent to the CS",
+        "info": "",
+        "x": 1150,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "aafc9533.78b61",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "Just 2 other CP JSON clients (simple/dumb)",
+        "info": "",
+        "x": 190,
+        "y": 810,
+        "wires": []
+    },
+    {
+        "id": "688278b3.2851c8",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "Empty trigger causes the default cmd and data in node to be used",
+        "info": "",
+        "x": 280,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "255e3170.72628e",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "EVSE / ChargePoint Clients",
+        "info": "",
+        "x": 160,
+        "y": 630,
+        "wires": []
+    },
+    {
+        "id": "248aa5d0.dec4f2",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "Debug all incoming msgs",
+        "info": "",
+        "x": 260,
+        "y": 230,
+        "wires": []
+    },
+    {
+        "id": "1eb59bcf.4e063c",
+        "type": "comment",
+        "z": "acc9f35a.ec54d8",
+        "name": "Example with JSON 1.6",
+        "info": "Keep in mind that some of the basic CS responses vary depending on OCPP 1.5 vs 1.6",
+        "x": 190,
+        "y": 70,
+        "wires": []
+    },
+    {
+        "id": "92124697.6658f",
+        "type": "ocpp-remote-cs",
+        "z": "",
+        "name": "Localhost:8834/ocpp",
+        "url": "ws://localhost:8834/ocpp"
+    },
+    {
+        "id": "2bafdaab.15b956",
+        "type": "ocpp-remotej-cp",
+        "z": "",
+        "name": "",
+        "cbId": "evse-001",
+        "ocppver": "1.6j"
+    }
+]

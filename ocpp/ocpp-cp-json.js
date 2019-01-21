@@ -5,7 +5,7 @@ const uuidv4 = require('uuid/v4');
 const events = require('events');
 const EventEmitter = events.EventEmitter;
 const Logger = require('./utils/logdata');
-const debug = require('debug')('anl:ocpp:cp-json');
+const debug = require('debug')('anl:ocpp:cp:server:json');
 
 let ee = new EventEmitter();
 
@@ -64,13 +64,12 @@ module.exports = function(RED) {
     });
 
     ws.on('error', function(err){
-      //console.log(`Websocket error: ${err}`);
       node.log(`Websocket error: ${err}`);
       debug(`Websocket error: ${err}`);
     });
 
     ws.on('message', function(msgIn) {
-
+      debug('Got a message ');
       let msg = {};
       msg.ocpp = {};
       msg.payload = {};
@@ -89,10 +88,10 @@ module.exports = function(RED) {
         msgParsed = JSON.parse(msgIn);
       }
 
-
       logger.log(msgTypeStr[msgParsed[msgType]], JSON.stringify(msgParsed));
 
       if (msgParsed[msgType] == CALL) {
+        debug(`Got a CALL Message ${msgParsed[msgId]}`);
         // msg.msgId = msgParsed[msgId];
         msg.msgId = id;
         msg.ocpp.MessageId = msgParsed[msgId];
@@ -122,12 +121,11 @@ module.exports = function(RED) {
           ws.send(JSON.stringify(response));
 
         });
-
         node.status({fill: 'green', shape: 'dot', text: `message in: ${msg.ocpp.command}`});
-        debug(`message in: ${msg.ocpp.command}`);
+        debug(`${ws.url} : message in: ${msg.ocpp.command}`);
         node.send(msg);
       } else if (msgParsed[msgType] == CALLRESULT) {
-
+        debug(`Got a CALLRESULT msgId ${msgParsed[msgId]}`);
         msg.msgId = msgParsed[msgId];
         msg.ocpp.MessageId = msgParsed[msgId];
         msg.ocpp.msgType = CALLRESULT;
@@ -155,7 +153,9 @@ module.exports = function(RED) {
     ws.on('pong', function(){
       debug('Got Pong');
     });
-
+    ws.on('close', function(code,reason){
+      debug(`Closing CP client websocket, code: ${code}, reason: ${reason}`);
+    });
 
     this.on('input', function(msg) {
 
@@ -200,14 +200,15 @@ module.exports = function(RED) {
           }
 
           node.reqKV[request[msgId]] = request[msgAction];
+          debug(`Sending message: ${request[msgAction]}, ${request}`);
+          node.status({fill: 'green', shape: 'dot', text: `request out: ${request[msgAction]}`});
         } else {
           request[msgResPayload] = msg.payload.data || {};
+          debug(`Sending response message: ${JSON.stringify(request[msgResPayload])}`);
+          node.status({fill: 'green', shape: 'dot', text: 'sending response'});
         }
-
+        
         logger.log(messageTypeStr[request[msgType]], JSON.stringify(request).replace(/,/g, ', '));
-
-        debug(`Sending message: ${request[msgAction]}, ${request}`);
-        node.status({fill: 'green', shape: 'dot', text: `request out: ${request[msgAction]}`});
 
         ws.send(JSON.stringify(request));
       }
@@ -217,9 +218,6 @@ module.exports = function(RED) {
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
       logger.log('info', 'Websocket closed');
       debug('Closing CP client JSON node..');
-      //console.log(`WS STATUS: ${ws.readyState}`);
-      ws.close();
-      //if (ws.readyState == 1)
       //ws.close();
     });
 
