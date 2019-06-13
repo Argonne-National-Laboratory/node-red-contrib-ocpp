@@ -282,20 +282,20 @@ module.exports = function(RED) {
           const CALLRESULT = 3;
           const CALLERROR = 4;
           const msgTypeStr = ['received', 'replied', 'error'];
-          
+
           const msgType = 0;
           const msgId = 1;
           const msgAction = 2;
           const msgCallPayload = 3;
           const msgResPayload = 2;
-          
+
           let reqMsgIdToCmd = {};
           let msg = {};
 
           msg.ocpp = {};
           msg.payload = {};
           msg.payload.data = {};
-          
+
           msg.ocpp.ocppVersion = '1.6j';
           msg.ocpp.chargeBoxIdentity = req.params.cbid;
 
@@ -304,13 +304,16 @@ module.exports = function(RED) {
             shape: 'dot',
             text: `Connected on ${node.svcPath16j}/${req.params.cbid}`,
           });
-          
+
           // emit to other nodes the connection has been established
-          ee.on(req.params.cbid + CBIDCONPOSTFIX, function(data, cb){ cb(); });
-          
-          
-          let eventname = req.params.cbid + REQEVTPOSTFIX;
           let connname = req.params.cbid + CBIDCONPOSTFIX;
+
+          // Add a connection to the event emitter..
+          ee.on(connname, function(){ });
+          // Announce connection
+          ee.emit(connname);
+
+          let eventname = req.params.cbid + REQEVTPOSTFIX;
 
           logger.log(
             'info',
@@ -343,7 +346,7 @@ module.exports = function(RED) {
             debug_cpserver(`ws opened for ${eventname}, shutting down emmitters`);
           });
 
-          ws.on('close', function(code,reason) {
+          ws.on('close', function(code, reason) {
             debug_csserver(`ws closed for ${eventname}, code ${code}, reason: ${reason}`);
             // ee.removeAllListeners(connname);
             // ee.removeAllListeners(eventname);
@@ -1035,6 +1038,8 @@ module.exports = function(RED) {
 
     let eventname = node.cbId + REQEVTPOSTFIX;
 
+    debug_csresponse(ee.eventNames());
+
     if (ee.listenerCount(eventname) < 1) {
       node.status({
         fill: 'blue',
@@ -1060,9 +1065,13 @@ module.exports = function(RED) {
       msg.ocpp = {};
 
       msg.ocpp.chargeBoxIdentity = msg.payload.cbId || node.cbId;
-      eventname = msg.ocpp.chargeBoxIdentity + REQEVTPOSTFIX;
 
-      if (ee.listenerCount(msg.ocpp.chargeBoxIdentity + CBIDCONPOSTFIX) < 1) {
+      let eventname = msg.ocpp.chargeBoxIdentity + REQEVTPOSTFIX;
+      let connname = msg.ocpp.chargeBoxIdentity + CBIDCONPOSTFIX;
+
+      debug_csrequest(ee.eventNames());
+
+      if (ee.listenerCount(connname) < 1) {
         node.status({
           fill: 'grey',
           shape: 'ring',
@@ -1126,7 +1135,6 @@ module.exports = function(RED) {
         msg.msgId = msg.payload.MessageId;
       }
 
-      debug_csrequest(ee.eventNames());
       msg.payload = {};
 
       node.status({
@@ -1134,9 +1142,11 @@ module.exports = function(RED) {
         shape: 'dot',
         text: `${msg.ocpp.chargeBoxIdentity}:${msg.ocpp.command}`,
       });
+
       debug_csrequest(
         `event: ${eventname}, command: ${msg.ocpp.command}, msgId: ${msg.msgId}`
       );
+
       ee.emit(eventname, msg, function(err, response) {
         if (err) {
           // report any errors
@@ -1150,6 +1160,7 @@ module.exports = function(RED) {
           node.send(msg);
         }
       });
+
     });
   }
 
