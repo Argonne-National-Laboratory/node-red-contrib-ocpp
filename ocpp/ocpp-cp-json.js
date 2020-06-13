@@ -1,7 +1,7 @@
 'use strict';
 
 const Websocket = require('ws');
-let ReconnectingWebSocket = require('reconnecting-websocket');
+const ReconnectingWebSocket = require('reconnecting-websocket');
 
 const uuidv4 = require('uuid/v4');
 const events = require('events');
