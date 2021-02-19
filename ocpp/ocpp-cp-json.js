@@ -1,6 +1,8 @@
 'use strict';
 
 const Websocket = require('ws');
+let ReconnectingWebSocket = require('reconnecting-websocket');
+
 const uuidv4 = require('uuid/v4');
 const events = require('events');
 const EventEmitter = events.EventEmitter;
@@ -51,29 +53,39 @@ module.exports = function(RED) {
 
     logger.log('info', `Making websocket connectio to ${csUrl}`);
 
-    let ws = new Websocket(csUrl, {handshaketimeout: 5000});
+    //let ws = new Websocket(csUrl, {handshaketimeout: 5000});
 
-    ws.on('open', function(){
+    const options = {
+      WebSocket: Websocket, // custom WebSocket constructor
+      connectionTimeout: 1000,
+      handshaketimeout: 5000,
+      maxRetries: 10,
+  };
+
+  let ws = new ReconnectingWebSocket(csUrl, [], options); 
+
+    ws.addEventListener('open', function(){
       node.status({fill: 'green', shape: 'dot', text: 'Connected...'});
       node.wsconnected = true;
     });
-    ws.on('close', function(){
+    ws.addEventListener('close', function(){
       logger.log('info', `Closing websocket connectio to ${csUrl}`);
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
       node.wsconnected = false;
     });
 
-    ws.on('error', function(err){
+    ws.addEventListener('error', function(err){
       node.log(`Websocket error: ${err}`);
       debug(`Websocket error: ${err}`);
     });
 
-    ws.on('message', function(msgIn) {
+    ws.addEventListener('message', function(event) {
       debug('Got a message ');
+      let msgIn = event.data
       let msg = {};
       msg.ocpp = {};
       msg.payload = {};
-
+      
       msg.ocpp.ocppVersion = '1.6j';
 
       let response = [];
@@ -146,14 +158,14 @@ module.exports = function(RED) {
 
     });
 
-    ws.on('ping', function(){
+    ws.addEventListener('ping', function(){
       debug('Got Ping');
       ws.send('pong');
     });
-    ws.on('pong', function(){
+    ws.addEventListener('pong', function(){
       debug('Got Pong');
     });
-    ws.on('close', function(code,reason){
+    ws.addEventListener('close', function(code,reason){
       debug(`Closing CP client websocket, code: ${code}, reason: ${reason}`);
     });
 
@@ -178,7 +190,6 @@ module.exports = function(RED) {
             debug(errStr);
             return;
           }
-
 
           let cmddata;
           if (node.cmddata){
