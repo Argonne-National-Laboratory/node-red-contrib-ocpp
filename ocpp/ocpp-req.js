@@ -2,7 +2,7 @@
 
 var path = require('path');
 var soap = require('soap');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 const Logger = require('./utils/logdata');
 
 

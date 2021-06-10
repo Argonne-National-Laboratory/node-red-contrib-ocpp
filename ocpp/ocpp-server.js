@@ -5,7 +5,7 @@ const soap = require('soap');
 const fs = require('fs');
 const path = require('path');
 const events = require('events');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 const xmlconvert = require('xml-js');
 const expressws = require('express-ws');
 

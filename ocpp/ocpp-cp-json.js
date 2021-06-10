@@ -3,7 +3,7 @@
 const Websocket = require('ws');
 let ReconnectingWebSocket = require('reconnecting-websocket');
 
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 const events = require('events');
 const EventEmitter = events.EventEmitter;
 const Logger = require('./utils/logdata');
