@@ -62,7 +62,7 @@ module.exports = function(RED) {
       maxRetries: 10,
   };
 
-  let ws = new ReconnectingWebSocket(csUrl, [], options); 
+  let ws = new ReconnectingWebSocket(csUrl, ['ocpp1.6'], options); 
 
     ws.addEventListener('open', function(){
       node.status({fill: 'green', shape: 'dot', text: 'Connected...'});
