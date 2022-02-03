@@ -10,7 +10,7 @@ const Logger = require('./utils/logdata');
 const debug = require('debug')('anl:ocpp:cp:server:json');
 
 let ee = new EventEmitter();
-
+let NetStatus = 'OFFLINE';
 
 module.exports = function(RED) {
   function OCPPChargePointJNode(config) {
@@ -51,7 +51,7 @@ module.exports = function(RED) {
 
     let csUrl = `${this.remotecs.url}/${this.cbId}`;
 
-    logger.log('info', `Making websocket connectio to ${csUrl}`);
+    logger.log('info', `Making websocket connection to ${csUrl}`);
 
     //let ws = new Websocket(csUrl, {handshaketimeout: 5000});
 
@@ -59,19 +59,37 @@ module.exports = function(RED) {
       WebSocket: Websocket, // custom WebSocket constructor
       connectionTimeout: 1000,
       handshaketimeout: 5000,
-      maxRetries: 10,
+      //maxRetries: 10,  //default to infinite retries
   };
 
-  let ws = new ReconnectingWebSocket(csUrl, ['ocpp1.6'], options); 
+  let ws = new ReconnectingWebSocket(csUrl, ['ocpp1.6'], options);  
 
     ws.addEventListener('open', function(){
+      let msg = {};      
+      msg.ocpp = {};
+      msg.payload = {};
       node.status({fill: 'green', shape: 'dot', text: 'Connected...'});
-      node.wsconnected = true;
+      node.wsconnected = true;      
+      msg.ocpp.websocket = 'ONLINE';      
+      if (NetStatus != msg.ocpp.websocket)  {
+        node.send(msg);//send update
+        NetStatus = msg.ocpp.websocket;
+      }    
     });
     ws.addEventListener('close', function(){
-      logger.log('info', `Closing websocket connectio to ${csUrl}`);
+      let msg = {};      
+      msg.ocpp = {};
+      msg.payload = {};
+      logger.log('info', `Closing websocket connection to ${csUrl}`);
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
       node.wsconnected = false;
+      msg.ocpp.websocket = 'OFFLINE';
+      if (NetStatus != msg.ocpp.websocket)  {
+        node.send(msg);//send update
+        NetStatus = msg.ocpp.websocket;
+      }       
+      
+            
     });
 
     ws.addEventListener('error', function(err){
@@ -81,7 +99,7 @@ module.exports = function(RED) {
 
     ws.addEventListener('message', function(event) {
       debug('Got a message ');
-      let msgIn = event.data
+      let msgIn = event.data;   
       let msg = {};
       msg.ocpp = {};
       msg.payload = {};
@@ -143,6 +161,13 @@ module.exports = function(RED) {
         msg.ocpp.msgType = CALLRESULT;
         msg.payload.data = msgParsed[msgResPayload];
 
+        if (node.wsconnected == true) {
+          msg.ocpp.websocket = 'ONLINE'
+        }
+        else {
+          msg.ocpp.websocket = 'OFFLINE'
+        }
+
         if (node.reqKV.hasOwnProperty(msg.msgId)){
           msg.ocpp.command = node.reqKV[msg.msgId];
           delete node.reqKV[msg.msgId];
@@ -160,14 +185,11 @@ module.exports = function(RED) {
 
     ws.addEventListener('ping', function(){
       debug('Got Ping');
-      ws.pong;
+      ws.pong();
     });
     ws.addEventListener('pong', function(){
       debug('Got Pong');
-    });
-    ws.addEventListener('close', function(code,reason){
-      debug(`Closing CP client websocket, code: ${code}, reason: ${reason}`);
-    });
+    });  
 
     this.on('input', function(msg) {
 
@@ -226,10 +248,19 @@ module.exports = function(RED) {
     });
 
     this.on('close', function(){
+      let msg = {};      
+      msg.ocpp = {};
+      msg.payload = {};
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
       logger.log('info', 'Websocket closed');
-      debug('Closing CP client JSON node..');
-      //ws.close();
+      debug('Closing CP client JSON node..');      
+      node.wsconnected = false;      
+      msg.ocpp.websocket = 'OFFLINE';
+      if (NetStatus != msg.ocpp.websocket)  {
+        node.send(msg);//send update
+        NetStatus = msg.ocpp.websocket;
+      }     
+      ws.close();
     });
 
   }
