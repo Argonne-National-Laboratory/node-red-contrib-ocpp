@@ -160,7 +160,7 @@ module.exports = function(RED) {
 
     ws.addEventListener('ping', function(){
       debug('Got Ping');
-      ws.send('pong');
+      ws.pong;
     });
     ws.addEventListener('pong', function(){
       debug('Got Pong');
