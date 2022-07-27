@@ -5,7 +5,7 @@
 [Node-Red][4] nodes for communicating with the EVSE Charge Points and Central Systems via the [Open Charge Point Protocol][6] (hereafter OCPP). These node-red nodes
 allow you to take on the role of a Central System (CS) or Charge Point (CP).  
 
-Based on the [OCPP 1.5][6] and [OCPP 1.6][8] secifications utilizing the Simple Object Access Protocol (hereafter SOAP) and JavaScript Object Notation (hearafer JSON) protocols.
+Based on the [OCPP 1.5][6] and [OCPP 1.6][8] specifications utilizing the Simple Object Access Protocol (hereafter SOAP) and JavaScript Object Notation (hearafer JSON) protocols.
 
 # Install
 
