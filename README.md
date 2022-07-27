@@ -177,7 +177,7 @@ Here is an example of a OCPP 1.6 JSON Heartbeat request message.
 }
 ```
 The incoming messages require a response (sent through the *[server response](#server-response)* node), and those responses should be sent within 
-a resonable amount of time. The ocpp-server node will cancle any outstanding responses after a 2 minute time period. The EVSE side 
+a resonable amount of time. The ocpp-server node will cancel any outstanding responses after a 2 minute time period. The EVSE side 
 may timeout awaiting a response even sooner than that depending on their configuration.
 
 ---
