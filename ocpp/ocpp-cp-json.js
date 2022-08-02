@@ -53,7 +53,8 @@ module.exports = function(RED) {
 
     logger.log('info', `Making websocket connection to ${csUrl}`);
 
-    //let ws = new Websocket(csUrl, {handshaketimeout: 5000});
+    // Add a ping timer handle
+    let hPingTimer = null;
 
     const options = {
       WebSocket: Websocket, // custom WebSocket constructor
@@ -75,12 +76,18 @@ module.exports = function(RED) {
         node.send(msg);//send update
         NetStatus = msg.ocpp.websocket;
       }    
+      // Add a ping intervale timer
+      // Need to call websocket property of websockets-reconnect ( stored as _ws )
+      hPingTimer = setInterval( () => { ws._ws.ping(); },30000);
     });
-    ws.addEventListener('close', function(){
+
+    ws.addEventListener('close', function(code,reason){
       let msg = {};      
       msg.ocpp = {};
       msg.payload = {};
       logger.log('info', `Closing websocket connection to ${csUrl}`);
+      node.debug(code);
+      debug('Websocket closed: code ',{code});
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
       node.wsconnected = false;
       msg.ocpp.websocket = 'OFFLINE';
@@ -88,13 +95,17 @@ module.exports = function(RED) {
         node.send(msg);//send update
         NetStatus = msg.ocpp.websocket;
       }       
-      
+      // Stop the ping timer
+      if (hPingTimer != null){
+        clearInterval(hPingTimer);
+        hPingTimer = null;
+      }
             
     });
 
     ws.addEventListener('error', function(err){
-      node.log(`Websocket error: ${err}`);
-      debug(`Websocket error: ${err}`);
+      node.log('Websocket error:', {err});
+      debug('Websocket error:', {err});
     });
 
     ws.addEventListener('message', function(event) {
@@ -183,9 +194,12 @@ module.exports = function(RED) {
 
     });
 
+    // Not sure that either one of these will get called since using the 
+    // websockets-reconnect
     ws.addEventListener('ping', function(){
       debug('Got Ping');
-      ws.pong();
+      // Need to call websocket property of websockets-reconnect ( stored as _ws )
+      ws._ws.pong();
     });
     ws.addEventListener('pong', function(){
       debug('Got Pong');
