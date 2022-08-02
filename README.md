@@ -5,7 +5,7 @@
 [Node-Red][4] nodes for communicating with the EVSE Charge Points and Central Systems via the [Open Charge Point Protocol][6] (hereafter OCPP). These node-red nodes
 allow you to take on the role of a Central System (CS) or Charge Point (CP).  
 
-Based on the [OCPP 1.5][6] and [OCPP 1.6][8] secifications utilizing the Simple Object Access Protocol (hereafter SOAP) and JavaScript Object Notation (hearafer JSON) protocols.
+Based on the [OCPP 1.5][6] and [OCPP 1.6][8] specifications utilizing the Simple Object Access Protocol (hereafter SOAP) and JavaScript Object Notation (hereafter JSON) protocols.
 
 # Install
 
@@ -86,7 +86,7 @@ For all request nodes the option exists to also pass in a user generated message
     "MessageId": "12345678"
 }
 ```
-This may make it easier for you to identify and track your message throughout your flows. By default, the node modules internally gereate a unique id for request messages based on [UUID v4](http://www.ietf.org/rfc/rfc4122.txt)
+This may make it easier for you to identify and track your message throughout your flows. By default, the node modules internally generate a unique id for request messages based on [UUID v4](http://www.ietf.org/rfc/rfc4122.txt)
 
 
 **Output**
@@ -142,7 +142,7 @@ To emulate a EVSE charge point station that utilizes OCPP 1.6 JSON, use the *[CP
 
 ---
 ## CS server
-The ocpp-server node will listen for incoming reqests coming from the EVSE charge points that are targeting its address. It is capable of recieving messages via 1.5 SOAP, 1.6 SOAP, and 1.6 JSON if the protocols are enabled in its configuration.
+The ocpp-server node will listen for incoming requests coming from the EVSE charge points that are targeting its address. It is capable of receiving messages via 1.5 SOAP, 1.6 SOAP, and 1.6 JSON if the protocols are enabled in its configuration.
 When the ocpp-server node receives a message, it will output a message in the following format:
 
 ```javascript
@@ -177,14 +177,14 @@ Here is an example of a OCPP 1.6 JSON Heartbeat request message.
 }
 ```
 The incoming messages require a response (sent through the *[server response](#server-response)* node), and those responses should be sent within 
-a resonable amount of time. The ocpp-server node will cancle any outstanding responses after a 2 minute time period. The EVSE side 
+a reasonable amount of time. The ocpp-server node will cancel any outstanding responses after a 2 minute time period. The EVSE side 
 may timeout awaiting a response even sooner than that depending on their configuration.
 
 ---
 ## server response
 To return a response to an incoming EVSE charge point request, you need to pass your message to the *[server response](#server-response)* node. Since the message 
 coming out of the ocpp-server node contains information about how to return the response, the message itself should be passed as is through
-the node flow with the expection of the msg.payload section. The msg.payload should be modified to contain the response to the incoming request.
+the node flow with the exception of the msg.payload section. The msg.payload should be modified to contain the response to the incoming request.
 
 For example, to accept a *BootNotification* request, set the payload of the response as:
 
@@ -202,21 +202,21 @@ For example, to accept a *BootNotification* request, set the payload of the resp
 ## CP server SOAP
 This node emulates an EVSE charge point station server that accepts and responds to OCPP 1.5 or 1.6 SOAP messages being sent from a a Central System service. Setup and behavior are similar to that of the *[CS server](#cs-server)*. Use this node in conjunction with a *[server response](#server-response)* node to pass responses to requests back to a Central System. 
 
-_Unlike the *[CS Server](#cs-server)* this node does not incorporate or support multiple protocols running concurrently, nore does it support JSON. To emulate an EVSE charge point that supports JSON, use the *[CP client JSON](#cp-client-json)* node._
+_Unlike the *[CS Server](#cs-server)* this node does not incorporate or support multiple protocols running concurrently, nor does it support JSON. To emulate an EVSE charge point that supports JSON, use the *[CP client JSON](#cp-client-json)* node._
 
 ---
 ## CP client JSON
-Use this node to emulate an EVSE charge point station that supports OCPP protocol 1.6 JSON. Since the OCPP JSON implementation utilizes web sockets, this node makes the initial connection to the defined Central System, and messages are passed back and forth. Therefore it acts like both a server and a client in that it both makes and recieves requests to and from the CS.
+Use this node to emulate an EVSE charge point station that supports OCPP protocol 1.6 JSON. Since the OCPP JSON implementation utilizes web sockets, this node makes the initial connection to the defined Central System, and messages are passed back and forth. Therefore it acts like both a server and a client in that it both makes and receives requests to and from the CS.
 
 ## CS request JSON
-Use this node to make make requests to an EVSE charge point station that support OCPP 1.6 JSON. Its behavior and functionality are similar to that of the *[CS request SOAP](#cs_request-soap)* node with the exception that it only support OCPP 1.6 JSON commands.
+Use this node to make requests to an EVSE charge point station that support OCPP 1.6 JSON. Its behavior and functionality are similar to that of the *[CS request SOAP](#cs_request-soap)* node with the exception that it only support OCPP 1.6 JSON commands.
 
 
 ## examples
 
 ![alt text](./images/clippednode-redexample.png "example flow found in the examples folder")
 
-In the root of the OCPP node module folder is a folder named examples. This is were you can find example flows that may be useful in setting up your OCCP situation. Currently a single example file exists which you can import into node-red that sets up a Central System node with a few basic Charge Point nodes. This is by no means a full production example, but just a starting point for those who may be intereted in a way to setup the nodes.
+In the root of the OCPP node module folder is a folder named examples. This is where you can find example flows that may be useful in setting up your OCCP situation. Currently a single example file exists which you can import into node-red that sets up a Central System node with a few basic Charge Point nodes. This is by no means a full production example, but just a starting point for those who may be interested in a way to setup the nodes.
 
 
 # Authors
