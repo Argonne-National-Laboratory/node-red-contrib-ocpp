@@ -153,11 +153,16 @@
 
     <h3>Inputs</h3>
         <dl class="message-properties">
-            <dt><code>msg.payload.MessageId</code><&nbsp;<i>optional</i> &nbsp;<<span class="property-type">string</span></dt>
+            <dt><code>msg.payload.MessageId</code>&nbsp;<i>optional</i> &nbsp;<span class="property-type">string</span></dt>
             <dd>Unique identifier for the message. This should only be used for originating calls/request and not for responses. By default if this parameter is missing a unique identifier will be assigned by the node</dd>
-            <dt><code>msg.payload.msgType</code>&nbsp;<i>optional</i> &nbsp;<<span class="property-type">number</span></dt>
-            <dd>Defaults to 2 (CALL/Request). If the message being sent is a response, msgType must be included and set to 3 (CALLRESPONSE/response). msgType 99 allows for special non-ocpp commands such as connecting and closing of the websocket connection.<dd>
-            <dt><code>msg.payload.command</code>&nbsp;<<i>optional</i> &nbsp;<<span class="property-type">string</span></dt>
+            <dt><code>msg.payload.msgType</code>&nbsp;<i>optional</i> &nbsp;<span class="property-type">number</span></dt>
+            <dd><ul>
+                <li>2 (default) for a CALL/Request to the CSMS.
+                <li>3 for sending an OCPP message response.
+                <li>99 for special non-ocpp commands such as (re)connecting or closing of the websocket connection.
+                </ul>
+            <dd>
+            <dt><code>msg.payload.command</code>&nbsp;<i>optional</i> &nbsp;<span class="property-type">string</span></dt>
             <dd>OCPP request or response being send to the Central System (if msgType is 2 or 3), otherwise msgType 99 allows for "connect" and "close" commands to (re)connect / close the websocket connection.</dd>
             <dt><code>msg.payload.data</code>&nbsp;<i>optional</i>&nbsp;<span class="property-type">object</span></dt>
             <dd>Object containing parameters for the command. In the case of msgType 99, and optional "cbId" and "csmsUrl" can be pased in to set/change the chargeBoxId and websocket URL.</dd>
