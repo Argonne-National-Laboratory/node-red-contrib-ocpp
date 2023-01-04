@@ -3,11 +3,13 @@
 const Websocket = require('ws');
 let ReconnectingWebSocket = require('reconnecting-websocket');
 
-const { v4: uuidv4 } = require('uuid');
+//
+//const { v4: uuidv4 } = require('uuid');
 const events = require('events');
 const EventEmitter = events.EventEmitter;
 const Logger = require('./utils/logdata');
 const debug = require('debug')('anl:ocpp:cp:server:json');
+const crypto = require('crypto');
 
 let ee = new EventEmitter();
 let NetStatus = 'OFFLINE';
@@ -20,6 +22,7 @@ module.exports = function(RED) {
 
     const CALL = 2;
     const CALLRESULT = 3;
+    const CONTROL = 99;
 
     // for logging...
     const msgTypeStr = ['unknown', 'unknown', 'received', 'replied', 'error'];
@@ -36,7 +39,7 @@ module.exports = function(RED) {
 
     this.remotecs = RED.nodes.getNode(config.remotecs);
 
-    this.url = this.remotecs.url;
+    this.url = this.remotecs.url.endsWith('/') ? this.remotecs.url.slice(0,-1) : this.remotecs.url;
     this.cbId = config.cbId;
     this.ocppVer = this.ocppver;
     this.name = config.name || this.remotecs.name;
@@ -49,7 +52,7 @@ module.exports = function(RED) {
     const logger = new Logger(this, this.pathlog, this.name);
     logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
 
-    let csUrl = `${this.remotecs.url}/${this.cbId}`;
+    let csUrl = `${this.url}/${this.cbId}`;
 
     logger.log('info', `Making websocket connection to ${csUrl}`);
 
@@ -60,10 +63,12 @@ module.exports = function(RED) {
       WebSocket: Websocket, // custom WebSocket constructor
       connectionTimeout: 1000,
       handshaketimeout: 5000,
+      startClosed: true
       //maxRetries: 10,  //default to infinite retries
   };
 
-  let ws = new ReconnectingWebSocket(csUrl, ['ocpp1.6'], options);  
+  //let ws = new ReconnectingWebSocket(csUrl, ['ocpp1.6'], options);  
+  let ws = new ReconnectingWebSocket(() => `${this.url}/${this.cbId}`, ['ocpp1.6'], options);  
 
     ws.addEventListener('open', function(){
       let msg = {};      
@@ -118,7 +123,7 @@ module.exports = function(RED) {
       msg.ocpp.ocppVersion = '1.6j';
 
       let response = [];
-      let id = uuidv4();
+      let id = crypto.randomUUID();
 
       let msgParsed;
 
@@ -207,57 +212,88 @@ module.exports = function(RED) {
 
     this.on('input', function(msg) {
 
-      if (node.wsconnected == true){
-
         let request = [];
         let messageTypeStr = ['unknown', 'unknown', 'request', 'replied', 'error'];
 
         debug(JSON.stringify(msg));
 
         request[msgType] = msg.payload.msgType || CALL;
-        request[msgId] = msg.payload.MessageId || uuidv4();
+        request[msgId] = msg.payload.MessageId || crypto.randomUUID();
 
-        if (request[msgType] == CALL){
-          request[msgAction] = msg.payload.command || node.command;
+        if (request[msgType] == CONTROL){
+        
+            request[msgAction] = msg.payload.command || node.command;
 
-          if (!request[msgAction]){
-            const errStr = 'ERROR: Missing Command in JSON request message';
-            node.error(errStr);
-            debug(errStr);
-            return;
-          }
-
-          let cmddata;
-          if (node.cmddata){
-            try {
-              cmddata = JSON.parse(node.cmddata);
-            } catch (e){
-              node.warn('OCPP JSON client node invalid payload.data for message (' + msg.ocpp.command + '): ' + e.message);
+            if (!request[msgAction]){
+              const errStr = 'ERROR: Missing Control Command in JSON request message';
+              node.error(errStr);
+              debug(errStr);
               return;
             }
 
+            switch(request[msgAction].toLowerCase()){
+              case 'connect':
+                if (msg.payload.data && msg.payload.data.hasOwnProperty("cbId")){
+                  this.cbId = msg.payload.data.cbId;
+                }
+                if (msg.payload.data && msg.payload.data.hasOwnProperty("csmsUrl")){
+                  this.url = msg.payload.data.csmsUrl.endsWith('/') ? msg.payload.data.csmsUrl.slice(0,-1) : msg.payload.data.csmsUrl;
+                }
+                ws.reconnect();
+                break;
+              case 'close':
+                ws.close();
+                break;
+              default: 
+                break;
+            }
+
+
+
+          logger.log(messageTypeStr[request[msgType]], JSON.stringify(request).replace(/,/g, ', '));
+
+        } else if( node.wsconnected == true){
+          if (request[msgType] == CALL){
+            request[msgAction] = msg.payload.command || node.command;
+
+            if (!request[msgAction]){
+              const errStr = 'ERROR: Missing Command in JSON request message';
+              node.error(errStr);
+              debug(errStr);
+              return;
+            }
+
+            let cmddata;
+            if (node.cmddata){
+              try {
+                cmddata = JSON.parse(node.cmddata);
+              } catch (e){
+                node.warn('OCPP JSON client node invalid payload.data for message (' + msg.ocpp.command + '): ' + e.message);
+                return;
+              }
+
+            }
+
+            request[msgCallPayload] = msg.payload.data || cmddata || {};
+            if (!request[msgCallPayload]){
+              const errStr = 'ERROR: Missing Data in JSON request message';
+              node.error(errStr);
+              debug(errStr);
+              return;
+            }
+
+            node.reqKV[request[msgId]] = request[msgAction];
+            debug(`Sending message: ${request[msgAction]}, ${request}`);
+            node.status({fill: 'green', shape: 'dot', text: `request out: ${request[msgAction]}`});
+          } else {
+            request[msgResPayload] = msg.payload.data || {};
+            debug(`Sending response message: ${JSON.stringify(request[msgResPayload])}`);
+            node.status({fill: 'green', shape: 'dot', text: 'sending response'});
           }
 
-          request[msgCallPayload] = msg.payload.data || cmddata || {};
-          if (!request[msgCallPayload]){
-            const errStr = 'ERROR: Missing Data in JSON request message';
-            node.error(errStr);
-            debug(errStr);
-            return;
-          }
+          logger.log(messageTypeStr[request[msgType]], JSON.stringify(request).replace(/,/g, ', '));
 
-          node.reqKV[request[msgId]] = request[msgAction];
-          debug(`Sending message: ${request[msgAction]}, ${request}`);
-          node.status({fill: 'green', shape: 'dot', text: `request out: ${request[msgAction]}`});
-        } else {
-          request[msgResPayload] = msg.payload.data || {};
-          debug(`Sending response message: ${JSON.stringify(request[msgResPayload])}`);
-          node.status({fill: 'green', shape: 'dot', text: 'sending response'});
-        }
-        
-        logger.log(messageTypeStr[request[msgType]], JSON.stringify(request).replace(/,/g, ', '));
-
-        ws.send(JSON.stringify(request));
+          ws.send(JSON.stringify(request));
       }
     });
 
