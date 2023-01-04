@@ -16,7 +16,7 @@ Run the following command in the root directory of your Node-RED install
 
 # Requirements
 
-The package currently requires [Node.js 8.5][1] or higher.
+The package currently requires [Node.js 10][1] or higher.
 
 # Nodes
 
