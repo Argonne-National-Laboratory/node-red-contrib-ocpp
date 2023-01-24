@@ -1,0 +1,318 @@
+[
+    {
+        "id": "b1993d2a213b2bb0",
+        "type": "tab",
+        "label": "Example Variable EVSE",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "c8164157fffcd824",
+        "type": "group",
+        "z": "b1993d2a213b2bb0",
+        "name": "CSMS 1 and 2",
+        "style": {
+            "label": true
+        },
+        "nodes": [
+            "4b27ab1b686062f0",
+            "3fe3a09b9c926cb3",
+            "51b49d5f6693963b"
+        ],
+        "x": 114,
+        "y": 439,
+        "w": 492,
+        "h": 142
+    },
+    {
+        "id": "a1b1a864ce992088",
+        "type": "CP client JSON",
+        "z": "b1993d2a213b2bb0",
+        "name": "Variable cbId EVSE2",
+        "cbId": "NR1",
+        "remotecs": "c7fb8bebb5ae2658",
+        "ocppver": "1.6j",
+        "command": "",
+        "cmddata": "",
+        "log": false,
+        "pathlog": "",
+        "x": 600,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "4b27ab1b686062f0",
+        "type": "CS server",
+        "z": "b1993d2a213b2bb0",
+        "g": "c8164157fffcd824",
+        "name": "Example CSMS 1 on Port 1234",
+        "port": "1234",
+        "enabled15": false,
+        "path15": "",
+        "enabled16": false,
+        "path16": "",
+        "enabled16j": true,
+        "path16j": "/ocpp",
+        "log": false,
+        "pathlog": "",
+        "x": 270,
+        "y": 480,
+        "wires": [
+            [
+                "3fe3a09b9c926cb3"
+            ]
+        ]
+    },
+    {
+        "id": "3fe3a09b9c926cb3",
+        "type": "debug",
+        "z": "b1993d2a213b2bb0",
+        "g": "c8164157fffcd824",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 500,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "0c15002a027787ac",
+        "type": "inject",
+        "z": "b1993d2a213b2bb0",
+        "name": "reconnect basic",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"msgType\":99,\"command\":\"connect\",\"data\":\"\"}",
+        "payloadType": "json",
+        "x": 200,
+        "y": 100,
+        "wires": [
+            [
+                "a1b1a864ce992088"
+            ]
+        ]
+    },
+    {
+        "id": "2dc76b95802e6e3c",
+        "type": "inject",
+        "z": "b1993d2a213b2bb0",
+        "name": "close websocket connection",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"msgType\":99,\"command\":\"close\",\"data\":\"\"}",
+        "payloadType": "json",
+        "x": 240,
+        "y": 380,
+        "wires": [
+            [
+                "a1b1a864ce992088"
+            ]
+        ]
+    },
+    {
+        "id": "079d1fbda5f65c4e",
+        "type": "inject",
+        "z": "b1993d2a213b2bb0",
+        "name": "reconnect as cbId NR2",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"msgType\":99,\"command\":\"connect\",\"data\":{\"cbId\":\"NR2\"}}",
+        "payloadType": "json",
+        "x": 220,
+        "y": 140,
+        "wires": [
+            [
+                "a1b1a864ce992088"
+            ]
+        ]
+    },
+    {
+        "id": "14dc14c7a2b18117",
+        "type": "inject",
+        "z": "b1993d2a213b2bb0",
+        "name": "reconnect as cbId NR3",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"msgType\":99,\"command\":\"connect\",\"data\":{\"cbId\":\"NR3\"}}",
+        "payloadType": "json",
+        "x": 220,
+        "y": 180,
+        "wires": [
+            [
+                "a1b1a864ce992088"
+            ]
+        ]
+    },
+    {
+        "id": "21841372de7337c3",
+        "type": "inject",
+        "z": "b1993d2a213b2bb0",
+        "name": "reconnect CSMS 2 as cbId NR3",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"msgType\":99,\"command\":\"connect\",\"data\":{\"cbId\":\"NR3\",\"csmsUrl\":\"ws://localhost:5678/ocpp\"}}",
+        "payloadType": "json",
+        "x": 250,
+        "y": 280,
+        "wires": [
+            [
+                "a1b1a864ce992088"
+            ]
+        ]
+    },
+    {
+        "id": "b02bc86a19957aef",
+        "type": "inject",
+        "z": "b1993d2a213b2bb0",
+        "name": "reconnect CSMS 1 as cbId NR3",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"msgType\":99,\"command\":\"connect\",\"data\":{\"cbId\":\"NR3\",\"csmsUrl\":\"ws://localhost:1234/ocpp\"}}",
+        "payloadType": "json",
+        "x": 250,
+        "y": 220,
+        "wires": [
+            [
+                "a1b1a864ce992088"
+            ]
+        ]
+    },
+    {
+        "id": "cab13276a30db051",
+        "type": "inject",
+        "z": "b1993d2a213b2bb0",
+        "name": "reconnect CSMS 2 as cbId NR4",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"msgType\":99,\"command\":\"connect\",\"data\":{\"cbId\":\"NR4\",\"csmsUrl\":\"ws://localhost:5678/ocpp\"}}",
+        "payloadType": "json",
+        "x": 250,
+        "y": 320,
+        "wires": [
+            [
+                "a1b1a864ce992088"
+            ]
+        ]
+    },
+    {
+        "id": "51b49d5f6693963b",
+        "type": "CS server",
+        "z": "b1993d2a213b2bb0",
+        "g": "c8164157fffcd824",
+        "name": "Example CSMS 2 on Port 5678",
+        "port": "5678",
+        "enabled15": false,
+        "path15": "",
+        "enabled16": false,
+        "path16": "",
+        "enabled16j": true,
+        "path16j": "/ocpp",
+        "log": false,
+        "pathlog": "",
+        "x": 270,
+        "y": 540,
+        "wires": [
+            [
+                "3fe3a09b9c926cb3"
+            ]
+        ]
+    },
+    {
+        "id": "c7fb8bebb5ae2658",
+        "type": "ocpp-remote-cs",
+        "name": "localhost:1234",
+        "url": "ws://localhost:1234/ocpp"
+    }
+]
