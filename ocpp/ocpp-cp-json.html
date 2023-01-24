@@ -24,7 +24,8 @@
             command: { value: "", required: false},
             cmddata: { value: "", required: false},
             log: { value: false, required: true },
-            pathlog: {value: "", required: false}
+            pathlog: {value: "", required: false},
+            wsdelayconnect: {value: true, required: true}
             
         },
         inputs: 1,
@@ -88,6 +89,10 @@
         </select>
     </div>
     <div class="form-row">
+        <input type="checkbox" id="node-input-wsdelayconnect" value="" style="display: inline-block; width: auto; vertical-align: top; margin-left: 30px; margin-right: 5px;">
+        <label for="node-input-wsdealyconnect" style="width: auto" >Delay connection on startup </label>
+    </div>
+    <div class="form-row">
         <label for="node-input-command"><i class="icon-cog"></i> Command</label>
         <select id="node-input-command">
             <option value="">&lt;None&gt;</option>
@@ -100,8 +105,7 @@
             <option value="MeterValues">Meter Values</option>
             <option value="StartTransaction">Start Transaction</option>
             <option value="StatusNotification">Status Notification</option>
-            <option value="StopTransaction">Stop Transaction</option>
-        </select><br/>
+            <option value="StopTransaction">Stop Transaction</option> </select><br/>
     </div>
 
     <div class="form-row">
@@ -139,6 +143,8 @@
         <dd>The URL of the Central System this charge point communicates with</dd>
         <dt>OCPP Ver</dt>
         <dd><i>*Future use<br/>Currently defaults to OCPP JSON 1.6 only</i></dd>
+        <dt>Delay connection on startup</dt>
+        <dd>If checked the websocket connection to the CS (CSMS) is not immediately attempted when the flow is started. Instead a message type "99" and command of "connect" must be sent to the node to initiate a connection</dd>
         <dt>Command:</i></dt>
         <dd>(Optional) Select an OCPP command to send if none is passed in via <code>msg.payload.command</code></dd>
         <dt>Command Params:</dt>
@@ -153,14 +159,19 @@
 
     <h3>Inputs</h3>
         <dl class="message-properties">
-            <dt><code>msg.payload.MessageId</code><i>optional</i> <span class="property-type">string</span></dt>
+            <dt><code>msg.payload.MessageId</code>&nbsp;<i>optional</i> &nbsp;<span class="property-type">string</span></dt>
             <dd>Unique identifier for the message. This should only be used for originating calls/request and not for responses. By default if this parameter is missing a unique identifier will be assigned by the node</dd>
-            <dt><code>msg.payload.msgType</code><i>optional</i> <span class="property-type">number</span></dt>
-            <dd>Defaults to 2 (CALL/Request). If the message being sent is a response, msgType must be included and set to 3 (CALLRESPONSE/response)<dd>
-            <dt><code>msg.payload.command</code> <i>optional</i> <span class="property-type">string</span></dt>
-            <dd>OCPP request or response being send to the Central System</dd>
-            <dt><code>msg.payload.data</code> <i>optional</i> <span class="property-type">object</span></dt>
-            <dd>Object containing parameters for the command</dd>
+            <dt><code>msg.payload.msgType</code>&nbsp;<i>optional</i> &nbsp;<span class="property-type">number</span></dt>
+            <dd><ul>
+                <li>2 (default) for a CALL/Request to the CSMS.
+                <li>3 for sending an OCPP message response.
+                <li>99 for special non-ocpp commands such as (re)connecting or closing of the websocket connection.
+                </ul>
+            <dd>
+            <dt><code>msg.payload.command</code>&nbsp;<i>optional</i> &nbsp;<span class="property-type">string</span></dt>
+            <dd>OCPP request or response being send to the Central System (if msgType is 2 or 3), otherwise msgType 99 allows for "connect" and "close" commands to (re)connect / close the websocket connection.</dd>
+            <dt><code>msg.payload.data</code>&nbsp;<i>optional</i>&nbsp;<span class="property-type">object</span></dt>
+            <dd>Object containing parameters for the command. In the case of msgType 99, and optional "cbId" and "csmsUrl" can be pased in to set/change the chargeBoxId and websocket URL.</dd>
         </dl>
 
     <h3>Outputs</h3>

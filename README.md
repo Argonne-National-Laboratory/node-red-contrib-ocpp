@@ -16,7 +16,7 @@ Run the following command in the root directory of your Node-RED install
 
 # Requirements
 
-The package currently requires [Node.js 8.5][1] or higher.
+The package currently requires [Node.js 10][1] or higher.
 
 # Nodes
 
@@ -221,9 +221,9 @@ In the root of the OCPP node module folder is a folder named examples. This is w
 
 # Authors
 
-[Jason D. Harper][5]
-
 [Bryan Nystrom][11]
+
+[Jason D. Harper][5]
 
 [Argonne National Laboratory][10]
 

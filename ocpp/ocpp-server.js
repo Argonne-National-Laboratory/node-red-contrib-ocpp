@@ -5,7 +5,11 @@ const soap = require('soap');
 const fs = require('fs');
 const path = require('path');
 const events = require('events');
-const { v4: uuidv4 } = require('uuid');
+//const { v4: uuidv4 } = require('uuid');
+//
+//Use nodejs built-in crypto for uuid
+const crypto = require('crypto');
+
 const xmlconvert = require('xml-js');
 const expressws = require('express-ws');
 
@@ -107,7 +111,7 @@ module.exports = function(RED) {
     // define the default ocpp soap function for the server
     let ocppFunc = function(ocppVer, command, args, cb, headers) {
       // create a unique id for each message to identify responses
-      let id = uuidv4();
+      let id = crypto.randomUUID();
 
       // Set a timout for each event response so they do not pile up if not responded to
       let to = setTimeout(
@@ -324,7 +328,7 @@ module.exports = function(RED) {
             let request = [];
 
             request[msgType] = CALL;
-            request[msgId] = data.payload.MessageId || uuidv4();
+            request[msgId] = data.payload.MessageId || crypto.randomUUID();
             request[msgAction] = data.ocpp.command;
             request[msgCallPayload] = data.ocpp.data || {};
 
@@ -365,7 +369,7 @@ module.exports = function(RED) {
           ws.on('message', function(msgIn) {
             let response = [];
 
-            let id = uuidv4();
+            let id = crypto.randomUUID();
 
             let msgParsed;
 
@@ -758,7 +762,7 @@ module.exports = function(RED) {
     // define the default ocpp soap function for the server
     let ocppFunc = function(ocppVer, command, args, cb, headers) {
       // create a unique id for each message to identify responses
-      let id = uuidv4();
+      let id = crypto.randomUUID();
 
       // Set a timout for each event response so they do not pile up if not responded to
       let to = setTimeout(
