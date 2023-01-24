@@ -48,6 +48,7 @@ module.exports = function(RED) {
     this.logging = config.log || false;
     this.pathlog = config.pathlog;
 
+    this.wsdelayconnect = config.wsdelayconnect || false;
 
     const logger = new Logger(this, this.pathlog, this.name);
     logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
@@ -55,6 +56,7 @@ module.exports = function(RED) {
     let csUrl = `${this.url}/${this.cbId}`;
 
     logger.log('info', `Making websocket connection to ${csUrl}`);
+    logger.log('info', `Delay websocket connection: ${this.wsdelayconnect}`);
 
     // Add a ping timer handle
     let hPingTimer = null;
@@ -63,7 +65,7 @@ module.exports = function(RED) {
       WebSocket: Websocket, // custom WebSocket constructor
       connectionTimeout: 1000,
       handshaketimeout: 5000,
-      startClosed: true
+      startClosed: this.wsdelayconnect 
       //maxRetries: 10,  //default to infinite retries
   };
 

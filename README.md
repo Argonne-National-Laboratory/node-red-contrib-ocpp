@@ -221,9 +221,9 @@ In the root of the OCPP node module folder is a folder named examples. This is w
 
 # Authors
 
-[Jason D. Harper][5]
-
 [Bryan Nystrom][11]
+
+[Jason D. Harper][5]
 
 [Argonne National Laboratory][10]
 

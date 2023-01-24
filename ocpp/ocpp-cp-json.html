@@ -24,7 +24,8 @@
             command: { value: "", required: false},
             cmddata: { value: "", required: false},
             log: { value: false, required: true },
-            pathlog: {value: "", required: false}
+            pathlog: {value: "", required: false},
+            wsdelayconnect: {value: true, required: true}
             
         },
         inputs: 1,
@@ -88,6 +89,10 @@
         </select>
     </div>
     <div class="form-row">
+        <input type="checkbox" id="node-input-wsdelayconnect" value="" style="display: inline-block; width: auto; vertical-align: top; margin-left: 30px; margin-right: 5px;">
+        <label for="node-input-wsdealyconnect" style="width: auto" >Delay connection on startup </label>
+    </div>
+    <div class="form-row">
         <label for="node-input-command"><i class="icon-cog"></i> Command</label>
         <select id="node-input-command">
             <option value="">&lt;None&gt;</option>
@@ -100,8 +105,7 @@
             <option value="MeterValues">Meter Values</option>
             <option value="StartTransaction">Start Transaction</option>
             <option value="StatusNotification">Status Notification</option>
-            <option value="StopTransaction">Stop Transaction</option>
-        </select><br/>
+            <option value="StopTransaction">Stop Transaction</option> </select><br/>
     </div>
 
     <div class="form-row">
@@ -139,6 +143,8 @@
         <dd>The URL of the Central System this charge point communicates with</dd>
         <dt>OCPP Ver</dt>
         <dd><i>*Future use<br/>Currently defaults to OCPP JSON 1.6 only</i></dd>
+        <dt>Delay connection on startup</dt>
+        <dd>If checked the websocket connection to the CS (CSMS) is not immediately attempted when the flow is started. Instead a message type "99" and command of "connect" must be sent to the node to initiate a connection</dd>
         <dt>Command:</i></dt>
         <dd>(Optional) Select an OCPP command to send if none is passed in via <code>msg.payload.command</code></dd>
         <dt>Command Params:</dt>
