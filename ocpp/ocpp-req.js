@@ -2,7 +2,11 @@
 
 var path = require('path');
 var soap = require('soap');
-const { v4: uuidv4 } = require('uuid');
+//const { v4: uuidv4 } = require('uuid');
+//
+//Use node built-in crypto for uuid
+const crypto = require3('crypto');
+
 const Logger = require('./utils/logdata');
 
 
@@ -48,7 +52,7 @@ module.exports = function(RED) {
 
           msg.ocpp = {};
           msg.ocpp.command = msg.payload.command || node.command;
-          msg.ocpp.MessageId = msg.payload.MessageId || uuidv4();
+          msg.ocpp.MessageId = msg.payload.MessageId || crypto.randomUUID();
           msg.ocpp.chargeBoxIdentity = cbId;
           msg.ocpp.url = node.url;
           msg.ocpp.ocppVer = node.ocppVer;
