@@ -53,7 +53,7 @@ by passing it a message, the message payload (*msg.payload*) would look as follo
 
 ```javascript
 {
-    "commnad": "Reset",
+    "command": "Reset",
     "data" : { "type" : "Hard" }
 }
 ```

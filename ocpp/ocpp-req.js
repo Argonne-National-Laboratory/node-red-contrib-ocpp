@@ -5,7 +5,7 @@ var soap = require('soap');
 //const { v4: uuidv4 } = require('uuid');
 //
 //Use node built-in crypto for uuid
-const crypto = require3('crypto');
+const crypto = require('crypto');
 
 const Logger = require('./utils/logdata');
 
