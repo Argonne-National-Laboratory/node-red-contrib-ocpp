@@ -198,7 +198,18 @@ module.exports = function(RED) {
     }, this);
 
     const expressServer = express();
-    const expressWs = expressws(expressServer);
+
+    // This checks that the subprotocol header for websockets is set to 'ocpp1.6'
+    const wsOptions = {
+      handleProtocols: function(protocols, request){
+        const requiredSubProto = 'ocpp1.6';
+        debug_csserver(`SubProtocols: [${protocols}]`);
+        return protocols.includes(requiredSubProto)? requiredSubProto : false;
+      }
+    }
+
+    const expressWs = expressws(expressServer,null,{wsOptions});
+    //const expressWs = expressws(expressServer);
 
     let x = expressWs.getWss();
     // x.clients.forEach((ws) => {
