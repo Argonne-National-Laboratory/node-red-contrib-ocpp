@@ -64,7 +64,7 @@ module.exports = function(RED) {
 
     // ee = new EventEmitter();
 
-    ee.on('error', err => {
+    ee.on('error', (err) => {
       node.error('EMITTER ERROR: ' + err);
       debug_csserver(`Event Emitter Error: ${err}`);
     });
@@ -201,14 +201,14 @@ module.exports = function(RED) {
 
     // This checks that the subprotocol header for websockets is set to 'ocpp1.6'
     const wsOptions = {
-      handleProtocols: function(protocols, request){
+      handleProtocols: function(protocols, request) {
         const requiredSubProto = 'ocpp1.6';
         debug_csserver(`SubProtocols: [${protocols}]`);
-        return protocols.includes(requiredSubProto)? requiredSubProto : false;
-      }
-    }
+        return protocols.includes(requiredSubProto) ? requiredSubProto : false;
+      },
+    };
 
-    const expressWs = expressws(expressServer,null,{wsOptions});
+    const expressWs = expressws(expressServer, null, { wsOptions });
     //const expressWs = expressws(expressServer);
 
     let x = expressWs.getWss();
@@ -324,7 +324,7 @@ module.exports = function(RED) {
           let connname = req.params.cbid + CBIDCONPOSTFIX;
 
           // Add a connection to the event emitter..
-          ee.on(connname, function(){ });
+          ee.on(connname, function() {});
           // Announce connection
           ee.emit(connname);
 
@@ -345,7 +345,7 @@ module.exports = function(RED) {
 
             logger.log('request', JSON.stringify(request).replace(/,/g, ', '));
 
-            ee.once(request[msgId], retData => {
+            ee.once(request[msgId], (retData) => {
               cb(err, retData);
             });
 
@@ -358,13 +358,17 @@ module.exports = function(RED) {
           ee.on(eventname, wsrequest);
 
           ws.on('open', function() {
-            debug_cpserver(`ws opened for ${eventname}, shutting down emmitters`);
+            debug_cpserver(
+              `ws opened for ${eventname}, shutting down emmitters`
+            );
           });
 
           ws.on('close', function(code, reason) {
-            debug_csserver(`ws closed for ${eventname}, code ${code}, reason: ${reason}`);
-            // ee.removeAllListeners(connname);
-            // ee.removeAllListeners(eventname);
+            debug_csserver(
+              `ws closed for ${eventname}, code ${code}, reason: ${reason}`
+            );
+            ee.removeAllListeners(connname);
+            ee.removeAllListeners(eventname);
           });
 
           ws.on('error', function(err) {
@@ -397,120 +401,124 @@ module.exports = function(RED) {
               ee.on(eventname, wsrequest);
             }
 
-            if (msgIn[0] != '[') {
-              msgParsed = JSON.parse('[' + msgIn + ']');
-            } else {
-              msgParsed = JSON.parse(msgIn);
-            }
-
-            logger.log(msgTypeStr[msgParsed[msgType] - CALL], msgIn);
-
-            msg.ocpp.MessageId = msgParsed[msgId];
-            msg.ocpp.msgType = msgParsed[msgType];
-
-            debug_csserver(`Message from: ${cbid} ${msgParsed[msgAction]}`);
-
-            if (msgParsed[msgType] == CALL) {
-              msg.msgId = id;
-              msg.ocpp.command = msgParsed[msgAction];
-              msg.payload.command = msgParsed[msgAction];
-              msg.payload.data = msgParsed[msgCallPayload];
-
-              let to = setTimeout(
-                function(id) {
-                  // node.log("kill:" + id);
-                  if (ee.listenerCount(id) > 0) {
-                    let evList = ee.listeners(id);
-                    ee.removeListener(id, evList[0]);
-                    debug_csserver(`Removed stale message id: ${id}`);
-                  }
-                },
-                60 * 1000,
-                id
-              );
-
-              callMsgIdToCmd.unshift({
-                msgId: msg.ocpp.MessageId,
-                command: msg.ocpp.command,
-              });
-
-              while (callMsgIdToCmd.length > 25) {
-                callMsgIdToCmd.pop();
+            try {
+              if (msgIn[0] != '[') {
+                msgParsed = JSON.parse('[' + msgIn + ']');
+              } else {
+                msgParsed = JSON.parse(msgIn);
               }
-              // debug_csserver({callMsgIdToCmd});
 
-              // This makes the response async so that we pass the responsibility onto the response node
-              ee.once(id, function(returnMsg) {
-                clearTimeout(to);
-                response[msgType] = CALLRESULT;
-                response[msgId] = msgParsed[msgId];
-                response[msgResPayload] = returnMsg;
+              logger.log(msgTypeStr[msgParsed[msgType] - CALL], msgIn);
 
-                logger.log(
-                  msgTypeStr[response[msgType] - CALL],
-                  JSON.stringify(response).replace(/,/g, ', ')
+              msg.ocpp.MessageId = msgParsed[msgId];
+              msg.ocpp.msgType = msgParsed[msgType];
+
+              debug_csserver(`Message from: ${cbid} ${msgParsed[msgAction]}`);
+
+              if (msgParsed[msgType] == CALL) {
+                msg.msgId = id;
+                msg.ocpp.command = msgParsed[msgAction];
+                msg.payload.command = msgParsed[msgAction];
+                msg.payload.data = msgParsed[msgCallPayload];
+
+                let to = setTimeout(
+                  function(id) {
+                    // node.log("kill:" + id);
+                    if (ee.listenerCount(id) > 0) {
+                      let evList = ee.listeners(id);
+                      ee.removeListener(id, evList[0]);
+                      debug_csserver(`Removed stale message id: ${id}`);
+                    }
+                  },
+                  60 * 1000,
+                  id
                 );
 
-                ws.send(JSON.stringify(response));
-              });
-              node.status({
-                fill: 'green',
-                shape: 'dot',
-                text: `Request: ${msg.ocpp.command}`,
-              });
+                callMsgIdToCmd.unshift({
+                  msgId: msg.ocpp.MessageId,
+                  command: msg.ocpp.command,
+                });
 
-              node.send(msg);
-            } else if (msgParsed[msgType] == CALLRESULT) {
-              msg.msgId = msgParsed[msgId];
-              msg.payload.data = msgParsed[msgResPayload];
+                while (callMsgIdToCmd.length > 25) {
+                  callMsgIdToCmd.pop();
+                }
+                // debug_csserver({callMsgIdToCmd});
 
-              // Lookup the command name via the returned message ID
-              if (reqMsgIdToCmd[msg.msgId]) {
-                msg.ocpp.command = reqMsgIdToCmd[msg.msgId];
-                delete reqMsgIdToCmd[msg.msgId];
-              } else {
-                msg.ocpp.command = 'unknown';
+                // This makes the response async so that we pass the responsibility onto the response node
+                ee.once(id, function(returnMsg) {
+                  clearTimeout(to);
+                  response[msgType] = CALLRESULT;
+                  response[msgId] = msgParsed[msgId];
+                  response[msgResPayload] = returnMsg;
+
+                  logger.log(
+                    msgTypeStr[response[msgType] - CALL],
+                    JSON.stringify(response).replace(/,/g, ', ')
+                  );
+
+                  ws.send(JSON.stringify(response));
+                });
+                node.status({
+                  fill: 'green',
+                  shape: 'dot',
+                  text: `Request: ${msg.ocpp.command}`,
+                });
+
+                node.send(msg);
+              } else if (msgParsed[msgType] == CALLRESULT) {
+                msg.msgId = msgParsed[msgId];
+                msg.payload.data = msgParsed[msgResPayload];
+
+                // Lookup the command name via the returned message ID
+                if (reqMsgIdToCmd[msg.msgId]) {
+                  msg.ocpp.command = reqMsgIdToCmd[msg.msgId];
+                  delete reqMsgIdToCmd[msg.msgId];
+                } else {
+                  msg.ocpp.command = 'unknown';
+                }
+                node.status({
+                  fill: 'blue',
+                  shape: 'dot',
+                  text: `Result: ${msg.ocpp.command}`,
+                });
+
+                ee.emit(msg.msgId, msg);
+              } else if (msgParsed[msgType] == CALLERROR) {
+                msg.payload.ErrorCode = msgParsed[2];
+                msg.payload.ErrorDescription = msgParsed[3];
+                msg.payload.ErrorDetails = msgParsed[4];
+
+                // search the command array for the command associated with the message id
+
+                let findMsgId = { msgId: msg.ocpp.MessageId };
+
+                let cmdIdx = callMsgIdToCmd.findIndex(getCmdIdx, findMsgId);
+
+                if (cmdIdx != -1) {
+                  msg.payload.command = callMsgIdToCmd[cmdIdx].command;
+                  msg.ocpp.command = msg.payload.command;
+                  delete callMsgIdToCmd.splice(cmdIdx, 1);
+                } else {
+                  msg.payload.command = 'unknown';
+                  msg.ocpp.command = msg.payload.command;
+                }
+
+                node.status({
+                  fill: 'red',
+                  shape: 'dot',
+                  text: `ERROR: ${msg.payload.command}`,
+                });
+
+                debug_csserver(`Got an ERROR: ${msg}`);
+
+                node.send(msg);
               }
-              node.status({
-                fill: 'blue',
-                shape: 'dot',
-                text: `Result: ${msg.ocpp.command}`,
-              });
 
-              ee.emit(msg.msgId, msg);
-            } else if (msgParsed[msgType] == CALLERROR) {
-              msg.payload.ErrorCode = msgParsed[2];
-              msg.payload.ErrorDescription = msgParsed[3];
-              msg.payload.ErrorDetails = msgParsed[4];
-
-              // search the command array for the command associated with the message id
-
-              let findMsgId = { msgId: msg.ocpp.MessageId };
-
-              let cmdIdx = callMsgIdToCmd.findIndex(getCmdIdx, findMsgId);
-
-              if (cmdIdx != -1) {
-                msg.payload.command = callMsgIdToCmd[cmdIdx].command;
-                msg.ocpp.command = msg.payload.command;
-                delete callMsgIdToCmd.splice(cmdIdx, 1);
-              } else {
-                msg.payload.command = 'unknown';
-                msg.ocpp.command = msg.payload.command;
+              function getCmdIdx(cmds) {
+                return cmds.msgId === this.msgId;
               }
-
-              node.status({
-                fill: 'red',
-                shape: 'dot',
-                text: `ERROR: ${msg.payload.command}`,
-              });
-
-              debug_csserver(`Got an ERROR: ${msg}`);
-
-              node.send(msg);
-            }
-
-            function getCmdIdx(cmds) {
-              return cmds.msgId === this.msgId;
+            } catch (err) {
+              logger.log('ERROR', err.message);
             }
           });
 
@@ -569,9 +577,7 @@ module.exports = function(RED) {
       if (headers.MessageID) {
         full_hdr =
           full_hdr +
-          `<RelatesTo RelationshipType="http://www.w3.org/2005/08/addressing/reply" xmlns="http://www.w3.org/2005/08/addressing">${
-            headers.MessageID
-          }</RelatesTo>`;
+          `<RelatesTo RelationshipType="http://www.w3.org/2005/08/addressing/reply" xmlns="http://www.w3.org/2005/08/addressing">${headers.MessageID}</RelatesTo>`;
       }
       full_hdr =
         full_hdr +
@@ -733,7 +739,7 @@ module.exports = function(RED) {
 
     node.status({ fill: 'blue', shape: 'ring', text: 'Waiting...' });
 
-    ee.on('error', err => {
+    ee.on('error', (err) => {
       node.error(`EMITTER ERROR: ${err}`);
       debug_cpserver(`EMITTER ERROR: ${err}`);
     });
@@ -972,7 +978,6 @@ module.exports = function(RED) {
 
     // Creates the message any payload for sending out into the flow and sends it.
     const sendMsg = function(ocppVer, command, msgId, args, headers) {
-
       ///////////////////////////
       // PSEUDOCODE
       //
@@ -1033,7 +1038,6 @@ module.exports = function(RED) {
 
       node.send(msg);
     };
-
   }
 
   function OCPPRequestJNode(config) {
@@ -1093,9 +1097,7 @@ module.exports = function(RED) {
           text: `Not connected to ${msg.ocpp.chargeBoxIdentity}`,
         });
         debug_csrequest(
-          `Attempt to send message to cbId ${
-            msg.ocpp.chargeBoxIdentity
-          } failed. Not connected yet.`
+          `Attempt to send message to cbId ${msg.ocpp.chargeBoxIdentity} failed. Not connected yet.`
         );
         return;
       }
@@ -1138,9 +1140,7 @@ module.exports = function(RED) {
           return;
         }
       } else {
-        const errStr = `OCPP JSON request node missing data for message: ${
-          msg.ocpp.command
-        }`;
+        const errStr = `OCPP JSON request node missing data for message: ${msg.ocpp.command}`;
         debug_csrequest(errStr);
         node.warn(errStr);
         return;
@@ -1175,7 +1175,6 @@ module.exports = function(RED) {
           node.send(msg);
         }
       });
-
     });
   }
 
