@@ -4,12 +4,14 @@ const Websocket = require('ws');
 let ReconnectingWebSocket = require('reconnecting-websocket');
 
 //
-//const { v4: uuidv4 } = require('uuid');
 const events = require('events');
 const EventEmitter = events.EventEmitter;
 const Logger = require('./utils/logdata');
 const debug = require('debug')('anl:ocpp:cp:server:json');
 const crypto = require('crypto');
+
+const url = require('node:url');
+const path = require('node:path');
 
 let ee = new EventEmitter();
 let NetStatus = 'OFFLINE';
@@ -33,13 +35,9 @@ module.exports = function(RED) {
     const msgCallPayload = 3;
     const msgResPayload = 2;
 
-    var node = this;
-
-    node.reqKV = {};
-
     this.remotecs = RED.nodes.getNode(config.remotecs);
 
-    this.url = this.remotecs.url.endsWith('/') ? this.remotecs.url.slice(0, -1) : this.remotecs.url;
+    this.csms_url = this.remotecs.url.endsWith('/') ? this.remotecs.url.slice(0, -1) : this.remotecs.url;
     this.cbId = config.cbId;
     this.ocppVer = this.ocppver;
     this.name = config.name || this.remotecs.name;
@@ -50,13 +48,34 @@ module.exports = function(RED) {
 
     this.wsdelayconnect = config.wsdelayconnect || false;
 
+    const node = this;
+
+    node.reqKV = {};
+
     const logger = new Logger(this, this.pathlog, this.name);
     logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
 
-    let csUrl = `${this.url}/${this.cbId}`;
+    let csmsURL;
 
-    logger.log('info', `Making websocket connection to ${csUrl}`);
-    logger.log('info', `Delay websocket connection: ${this.wsdelayconnect}`);
+    // We attemt to verify that we have a valid CMSM URL
+    // If not, we skip doing an autoconnect at startup
+    // Otherwise, connecting will cause NR to crash
+    //
+    try {
+      debug(`startup CSMS URL: ${node.csms_url}`);
+      csmsURL = new URL(node.csms_url);
+      csmsURL.pathname = path.join(csmsURL.pathname, node.cbId)
+      
+      debug(`CSMS URL: ${csmsURL.href}`);
+      logger.log('info', `Making websocket connection to ${csmsURL.href}`);
+      
+    } catch(error) {
+      node.status( { fill: 'red', shape: 'ring', text: error });
+      debug(`URL error: ${error}`);
+      this.wsdelayconnect = true;
+      // return;
+    }
+
 
     // Add a ping timer handle
     let hPingTimer = null;
@@ -69,8 +88,10 @@ module.exports = function(RED) {
       //maxRetries: 10,  //default to infinite retries
     };
 
-    //let ws = new ReconnectingWebSocket(csUrl, ['ocpp1.6'], options);
-    let ws = new ReconnectingWebSocket(() => `${this.url}/${this.cbId}`, ['ocpp1.6'], options);
+    logger.log('info', `Delay websocket connection: ${this.wsdelayconnect}`);
+    debug(`Websocket startClosed = ${options.startClosed}`);
+
+    let ws = new ReconnectingWebSocket(() => `${csmsURL.href}`, ['ocpp1.6'], options);
 
     ws.addEventListener('open', function(){
       let msg = {};
@@ -79,6 +100,7 @@ module.exports = function(RED) {
       node.status({fill: 'green', shape: 'dot', text: 'Connected...'});
       node.wsconnected = true;
       msg.ocpp.websocket = 'ONLINE';
+      debug(`Websocket open to URL: ${csmsURL.href}`);
       if (NetStatus != msg.ocpp.websocket) {
         node.send(msg);//send update
         NetStatus = msg.ocpp.websocket;
@@ -92,9 +114,13 @@ module.exports = function(RED) {
       let msg = {};
       msg.ocpp = {};
       msg.payload = {};
-      logger.log('info', `Closing websocket connection to ${csUrl}`);
+      logger.log('info', `Closing websocket connection to ${csmsURL.href}`);
       node.debug(code);
-      debug('Websocket closed: code ', {code});
+      // NOTE: This is what reconnecting websocket returns.
+      // retest for other codes when rws is removed
+      //
+      debug(`Websocket closed code: ${code.code}`);
+      debug(`Websocket closed reason: ${code.reason}`);
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
       node.wsconnected = false;
       msg.ocpp.websocket = 'OFFLINE';
@@ -236,9 +262,24 @@ module.exports = function(RED) {
           case 'connect':
             if (msg.payload.data && msg.payload.data.hasOwnProperty('cbId')){
               this.cbId = msg.payload.data.cbId;
+              debug(`Injected cbId: ${this.cbId}`);
             }
             if (msg.payload.data && msg.payload.data.hasOwnProperty('csmsUrl')){
-              this.url = msg.payload.data.csmsUrl.endsWith('/') ? msg.payload.data.csmsUrl.slice(0, -1) : msg.payload.data.csmsUrl;
+              this.csms_url = msg.payload.data.csmsUrl.endsWith('/') ? msg.payload.data.csmsUrl.slice(0, -1) : msg.payload.data.csmsUrl;
+              debug(`Injected csmsURL: ${this.csms_url}`);
+            }
+            try {
+              if (! csmsURL){
+                csmsURL = new URL(node.csms_url);
+              }else{
+                csmsURL.href = node.csms_url;
+              }
+              csmsURL.pathname = path.join(csmsURL.pathname, node.cbId);
+              debug(`connecting to URL: ${csmsURL.href}`);
+            }catch(error){
+              node.status({ fill: 'red', shape: 'ring', text: error });
+              debug(`URL error: ${error}`);
+              return;
             }
             ws.reconnect();
             break;
