@@ -25,8 +25,10 @@
             cmddata: { value: "", required: false},
             log: { value: false, required: true },
             pathlog: {value: "", required: false},
-            wsdelayconnect: {value: true, required: true}
-            
+            wsdelayconnect: {value: true, required: true},
+            wstomin: {value: 5, required: false}, 
+            wstomax: {value: 360, required: false}, 
+            wstoinc: {value: 5, required: false} 
         },
         inputs: 1,
         outputs: 1,
@@ -128,7 +130,19 @@
             <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
         </div>
     </div>
-    
+    <div class="header">Reconnect Rate</div>
+    <div class="form-row">
+        <label for="node-input-wstomin"><i class="icon-timer"></i> Min (sec)</label>
+        <input type="number" id="node-input-wstomin" min="0">
+    </div>
+    <div class="form-row">
+        <label for="node-input-wstomax"><i class="icon-timer"></i> Max (sec)</label>
+        <input type="number" id="node-input-wstomax" min="0">
+    </div>
+    <div class="form-row">
+        <label for="node-input-wstoinc"><i class="icon-timer"></i> Inc (sec)</label>
+        <input type="number" id="node-input-wstoinc" min="0">
+    </div>    
 
 </script>
 
