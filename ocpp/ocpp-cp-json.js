@@ -75,6 +75,14 @@ module.exports = function(RED) {
     let conto;
     let wsnoreconn = false;
 
+    function reconn_debug() {
+      debug(`wstomin: ${node.wstomin}`);
+      debug(`wstomax: ${node.wstomax}`);
+      debug(`wstoinc: ${node.wstoinc}`);
+      debug(`wstocur: ${wstocur}`);
+      debug(`wsreconncnt: ${wsreconncnt}`);
+    }; 
+
     // We attemt to verify that we have a valid CMSM URL
     // If not, we skip doing an autoconnect at startup
     // Otherwise, connecting will cause NR to crash
@@ -120,6 +128,8 @@ module.exports = function(RED) {
       let msg = {};
       msg.ocpp = {};
       // msg.payload = {};
+      wsreconncnt = 0;
+      wstocur = parseInt(node.wstomin);
       node.status({fill: 'green', shape: 'dot', text: 'Connected...'});
       node.wsconnected = true;
       msg.ocpp.websocket = 'ONLINE';
@@ -176,7 +186,7 @@ module.exports = function(RED) {
 
     let ws_error = function(err){
       node.log('Websocket error:', {err});
-      debug('Websocket error:', {err});
+      // debug('Websocket error:', {err});
     };
 
     let ws_message = function(event){
@@ -261,6 +271,7 @@ module.exports = function(RED) {
     };
 
     function ws_connect(){
+      reconn_debug();
       try {
         ws = new Websocket(csmsURL.href, OCPPPROTOCOL, ws_options);
         ws.timeout = 5000;
@@ -356,7 +367,9 @@ module.exports = function(RED) {
               return;
             }
             wsnoreconn = false;
-            ws_reconnect();
+            wsreconncnt = 0;
+            wstocur = parseInt(node.wstomin);
+            ws_reconnect(); 
             break;
           case 'close':
             wsnoreconn = true;
