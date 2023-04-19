@@ -2,8 +2,6 @@
 
 var path = require('path');
 var soap = require('soap');
-//const { v4: uuidv4 } = require('uuid');
-//
 //Use node built-in crypto for uuid
 const crypto = require('crypto');
 

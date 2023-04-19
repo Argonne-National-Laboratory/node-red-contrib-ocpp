@@ -2,8 +2,6 @@
 
 const path = require('path');
 const soap = require('soap');
-// const os = require('os');
-// const fs = require('fs');
 const Logger = require('./utils/logdata');
 
 const debug = require('debug')('anl:ocpp:cp-req-soap');

@@ -1,9 +1,7 @@
 'use strict';
 
 const Websocket = require('ws');
-let ReconnectingWebSocket = require('reconnecting-websocket');
 
-//
 const events = require('events');
 const EventEmitter = events.EventEmitter;
 const Logger = require('./utils/logdata');
@@ -15,6 +13,12 @@ const path = require('node:path');
 
 let ee = new EventEmitter();
 let NetStatus = 'OFFLINE';
+
+const WSTOMIN_DEF = 5;
+const WSTOMAX_DEF = 360;
+const WSTOINC_DEF = 5;
+
+const OCPPPROTOCOL = ['ocpp1.6'];
 
 module.exports = function(RED) {
   function OCPPChargePointJNode(config) {
@@ -46,9 +50,18 @@ module.exports = function(RED) {
     this.logging = config.log || false;
     this.pathlog = config.pathlog;
 
-    this.wsdelayconnect = config.wsdelayconnect || false;
+    this.auto_connect = config.wsdelayconnect || false;
+    this.wstomin = (isNaN(Number.parseInt(config.wstomin))) ? WSTOMIN_DEF : Number.parseInt(config.wstomin);
+    let _wstomax = (isNaN(Number.parseInt(config.wstomax))) ? WSTOMAX_DEF : Number.parseInt(config.wstomax);
+    this.wstomax = parseInt((_wstomax >= this.wstomin)? _wstomax : this.wstomin);
+    this.wstoinc = (isNaN(Number.parseInt(config.wstoinc))) ? WSTOINC_DEF : Number.parseInt(config.wstoinc);
+    // this.wstomin = 30;
+    // this.wstomax = 360;
+    // this.wstoinc = 5;
 
     const node = this;
+
+    node.status({ fill: 'blue', shape: 'ring', text: 'OCPP CS 1.6' });
 
     node.reqKV = {};
 
@@ -56,6 +69,19 @@ module.exports = function(RED) {
     logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
 
     let csmsURL;
+    let ws;
+    let wsreconncnt = 0;
+    let wstocur = parseInt(node.wstomin);
+    let conto;
+    let wsnoreconn = false;
+
+    function reconn_debug() {
+      debug(`wstomin: ${node.wstomin}`);
+      debug(`wstomax: ${node.wstomax}`);
+      debug(`wstoinc: ${node.wstoinc}`);
+      debug(`wstocur: ${wstocur}`);
+      debug(`wsreconncnt: ${wsreconncnt}`);
+    }; 
 
     // We attemt to verify that we have a valid CMSM URL
     // If not, we skip doing an autoconnect at startup
@@ -72,7 +98,7 @@ module.exports = function(RED) {
     } catch(error) {
       node.status( { fill: 'red', shape: 'ring', text: error });
       debug(`URL error: ${error}`);
-      this.wsdelayconnect = true;
+      // this.wsdelayconnect = true;
       // return;
     }
 
@@ -80,23 +106,30 @@ module.exports = function(RED) {
     // Add a ping timer handle
     let hPingTimer = null;
 
-    const options = {
-      WebSocket: Websocket, // custom WebSocket constructor
-      connectionTimeout: 1000,
+    const ws_options = {
+      // WebSocket: Websocket, // custom WebSocket constructor
+      connectionTimeout: 5000,
       handshaketimeout: 5000,
-      startClosed: this.wsdelayconnect,
+      // startClosed: this.wsdelayconnect,
       //maxRetries: 10,  //default to infinite retries
     };
 
-    logger.log('info', `Delay websocket connection: ${this.wsdelayconnect}`);
-    debug(`Websocket startClosed = ${options.startClosed}`);
+    // Not sure that either one of these will get called since using the
+    // websockets-reconnect
+    let ws_ping = function(){
+      debug('Got Ping');
+      ws.pong();
+    };
+    let ws_pong = function(){
+      debug('Got Pong');
+    };
 
-    let ws = new ReconnectingWebSocket(() => `${csmsURL.href}`, ['ocpp1.6'], options);
-
-    ws.addEventListener('open', function(){
+    let ws_open = function(){
       let msg = {};
       msg.ocpp = {};
-      msg.payload = {};
+      // msg.payload = {};
+      wsreconncnt = 0;
+      wstocur = parseInt(node.wstomin);
       node.status({fill: 'green', shape: 'dot', text: 'Connected...'});
       node.wsconnected = true;
       msg.ocpp.websocket = 'ONLINE';
@@ -106,21 +139,18 @@ module.exports = function(RED) {
         NetStatus = msg.ocpp.websocket;
       }
       // Add a ping intervale timer
-      // Need to call websocket property of websockets-reconnect ( stored as _ws )
-      hPingTimer = setInterval(() => { ws._ws.ping(); }, 30000);
-    });
-
-    ws.addEventListener('close', function(code, reason){
+      hPingTimer = setInterval(() => { ws.ping(); }, 3000);
+    };
+    
+    let ws_close = function(code, reason){
       let msg = {};
       msg.ocpp = {};
-      msg.payload = {};
+      // msg.payload = {};
       logger.log('info', `Closing websocket connection to ${csmsURL.href}`);
       node.debug(code);
-      // NOTE: This is what reconnecting websocket returns.
-      // retest for other codes when rws is removed
-      //
       debug(`Websocket closed code: ${code.code}`);
-      debug(`Websocket closed reason: ${code.reason}`);
+      debug(`Websocket closed reason: ${reason}`);
+      debug(JSON.stringify(code));
       node.status({fill: 'red', shape: 'dot', text: 'Closed...'});
       node.wsconnected = false;
       msg.ocpp.websocket = 'OFFLINE';
@@ -134,14 +164,32 @@ module.exports = function(RED) {
         hPingTimer = null;
       }
 
-    });
+      ws.removeEventListener('open',ws_open);
+      ws.removeEventListener('close',ws_open);
+      ws.removeEventListener('error',ws_open);
+      ws.removeEventListener('message',ws_open);
+      ws.removeEventListener('ping',ws_ping);
+      ws.removeEventListener('pong',ws_pong);
 
-    ws.addEventListener('error', function(err){
+      if (!wsnoreconn){
+        wsreconncnt += 1;
+        node.status( { fill: 'red', shape: 'dot', text: `(${wsreconncnt}) Reconnecting` });
+        conto = setTimeout( () => ws_connect(), wstocur * 1000);
+        debug(`ws reconnect timeout: ${wstocur}`);
+        wstocur += +node.wstoinc;
+        wstocur = (wstocur >= node.wstomax) ? node.wstomax : wstocur;
+      } else {
+        node.status({ fill: 'red', shape: 'dot', text: 'Closed' });
+      }
+    };
+
+
+    let ws_error = function(err){
       node.log('Websocket error:', {err});
-      debug('Websocket error:', {err});
-    });
+      // debug('Websocket error:', {err});
+    };
 
-    ws.addEventListener('message', function(event) {
+    let ws_message = function(event){
       debug('Got a message ');
       let msgIn = event.data;
       let msg = {};
@@ -205,11 +253,7 @@ module.exports = function(RED) {
         msg.ocpp.msgType = CALLRESULT;
         msg.payload.data = msgParsed[msgResPayload];
 
-        if (node.wsconnected == true) {
-          msg.ocpp.websocket = 'ONLINE';
-        } else {
-          msg.ocpp.websocket = 'OFFLINE';
-        }
+        msg.ocpp.websocket = (node.wsconnected)? 'ONLINE' : 'OFFLINE';
 
         if (node.reqKV.hasOwnProperty(msg.msgId)){
           msg.ocpp.command = node.reqKV[msg.msgId];
@@ -224,18 +268,59 @@ module.exports = function(RED) {
 
       }
 
-    });
+    };
 
-    // Not sure that either one of these will get called since using the
-    // websockets-reconnect
-    ws.addEventListener('ping', function(){
-      debug('Got Ping');
-      // Need to call websocket property of websockets-reconnect ( stored as _ws )
-      ws._ws.pong();
-    });
-    ws.addEventListener('pong', function(){
-      debug('Got Pong');
-    });
+    function ws_connect(){
+      reconn_debug();
+      try {
+        ws = new Websocket(csmsURL.href, OCPPPROTOCOL, ws_options);
+        ws.timeout = 5000;
+        debug(`${node.cbId} ws_connect()`);
+        ws.addEventListener('open',ws_open);
+        ws.addEventListener('close',ws_close);
+        ws.addEventListener('error',ws_error);
+        ws.addEventListener('message',ws_message);
+        ws.addEventListener('ping',ws_ping);
+        ws.addEventListener('pong',ws_pong);
+      }catch(error){
+        debug(`Websocket Error: ${error}`);
+        return;
+      }
+    };
+
+    function ws_reconnect(){
+      debug('Clearing Timeout');
+      clearTimeout(conto);
+      try {
+        if (ws){
+          ws.removeEventListener('open',ws_open);
+          ws.removeEventListener('close',ws_close);
+          ws.removeEventListener('error',ws_error);
+          ws.removeEventListener('message',ws_message);
+          ws.removeEventListener('ping',ws_ping);
+          ws.removeEventListener('pong',ws_pong);
+          ws.close();
+        }
+        clearTimeout(conto);
+        ws_connect();
+      }catch(error){
+        debug(`Websocket Error: ${error}`);
+        return;
+      }
+    };
+
+    // Only do this if auto-connect is enabled
+    //
+    if (node.auto_connect && csmsURL){
+      node.status({fill: 'blue', shape: 'dot', text: `Connecting...`});
+      ws_connect();
+    }
+
+
+    ////////////////////////////////////////////
+    // This section is for input from a the   //
+    // Node itself                            //
+    ////////////////////////////////////////////
 
     this.on('input', function(msg) {
 
@@ -281,10 +366,25 @@ module.exports = function(RED) {
               debug(`URL error: ${error}`);
               return;
             }
-            ws.reconnect();
+            wsnoreconn = false;
+            wsreconncnt = 0;
+            wstocur = parseInt(node.wstomin);
+            ws_reconnect(); 
             break;
           case 'close':
-            ws.close();
+            wsnoreconn = true;
+            if (ws){
+              clearTimeout(conto);
+              ws.close();
+              node.status( { fill: 'red', shape: 'dot', text: 'Closed' });
+            }
+            break;
+          case 'ws_state':
+            msg = {};
+            msg.ocpp = {};
+            msg.ocpp.websocket = (node.wsconnected)? 'ONLINE' : 'OFFLINE';
+            if (csmsURL) msg.ocpp.csmsUrl = csmsURL.href;
+            node.send(msg);
             break;
           default:
             break;
