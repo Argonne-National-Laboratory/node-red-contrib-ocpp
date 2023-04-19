@@ -37,7 +37,7 @@ _(nodes that begin with CS refer to those that emulate a Central System. Those w
 This node allows you to make requests to an EVSE charge point and return a message with the response from that request. The targeted EVSE charge point must support either 1.5 or 1.6 SOAP (this node does not support JSON) It is flexible in that you can either set up a default command and/or data to send when you configure the node, or you may pass in 
 that information to override the defaults via a message payload.
 
-For example, to set up a *Reset* command request, you can select the *Reset* command from the nodes configuraiton dropdown. The Reset command
+For example, to set up a *Reset* command request, you can select the *Reset* command from the nodes configuration dropdown. The Reset command
 also requires sending a parameter indicating the type of reset to be performed, either *hard* or *soft*. In the Command Params field of the configuration, you would provide a JSON formatted object similar to this:
 
 ```javascript
@@ -47,7 +47,7 @@ also requires sending a parameter indicating the type of reset to be performed, 
 ```
 
 
-Alternately, you can pass the node a payload which contains a command and/or data to override the defaults. To make a *Reset* request
+Alternatively, you can pass the node a payload which contains a command and/or data to override the defaults. To make a *Reset* request
 by passing it a message, the message payload (*msg.payload*) would look as follows:
 
 
@@ -58,7 +58,7 @@ by passing it a message, the message payload (*msg.payload*) would look as follo
 }
 ```
 
-If either the command or the data sections are missing from from the message, the defaults set up in the nodes configuration will be used. If you set up an *[CS request SOAP](#cs-request-soap)* node
+If either the command or the data sections are missing from the message, the defaults that are set up in the node configuration will be used. If you set up an *[CS request SOAP](#cs-request-soap)* node
 with a default command of *Reset*, you could pass in just the following:
 
 
@@ -81,7 +81,7 @@ For all request nodes the option exists to also pass in a user generated message
 
 ```javascript
 {
-    "commnad": "Reset",
+    "command": "Reset",
     "data" : { "type" : "Hard" },
     "MessageId": "12345678"
 }
@@ -136,7 +136,7 @@ The payload portion varies depending on the command and EVSE charge point vendor
 
 ---
 ## CP request SOAP
-This node is used to emulate a EVSE charge point station and is capable of making requests to a Central System service that support either protocol 1.5 or 1.6 SOAP. Its behavior is similar to that of the *[CS request SOAP](#cs-request-soap)* node.
+This node is used to emulate an EVSE charge point station and is capable of making requests to a Central System service that supports either protocol 1.5 or 1.6 SOAP. Its behavior is similar to that of the *[CS request SOAP](#cs-request-soap)* node.
 
 To emulate a EVSE charge point station that utilizes OCPP 1.6 JSON, use the *[CP client JSON](#cp-client-json)* node.
 
@@ -200,7 +200,7 @@ For example, to accept a *BootNotification* request, set the payload of the resp
 
 ---
 ## CP server SOAP
-This node emulates an EVSE charge point station server that accepts and responds to OCPP 1.5 or 1.6 SOAP messages being sent from a a Central System service. Setup and behavior are similar to that of the *[CS server](#cs-server)*. Use this node in conjunction with a *[server response](#server-response)* node to pass responses to requests back to a Central System. 
+This node emulates an EVSE charge point station server that accepts and responds to OCPP 1.5 or 1.6 SOAP messages being sent from a Central System service. Setup and behavior are similar to that of the *[CS server](#cs-server)*. Use this node in conjunction with a *[server response](#server-response)* node to pass responses to requests back to a Central System. 
 
 _Unlike the *[CS Server](#cs-server)* this node does not incorporate or support multiple protocols running concurrently, nor does it support JSON. To emulate an EVSE charge point that supports JSON, use the *[CP client JSON](#cp-client-json)* node._
 
@@ -209,14 +209,14 @@ _Unlike the *[CS Server](#cs-server)* this node does not incorporate or support 
 Use this node to emulate an EVSE charge point station that supports OCPP protocol 1.6 JSON. Since the OCPP JSON implementation utilizes web sockets, this node makes the initial connection to the defined Central System, and messages are passed back and forth. Therefore it acts like both a server and a client in that it both makes and receives requests to and from the CS.
 
 ## CS request JSON
-Use this node to make requests to an EVSE charge point station that support OCPP 1.6 JSON. Its behavior and functionality are similar to that of the *[CS request SOAP](#cs_request-soap)* node with the exception that it only support OCPP 1.6 JSON commands.
+Use this node to make requests to an EVSE charge point station that supports OCPP 1.6 JSON. Its behavior and functionality are similar to that of the *[CS request SOAP](#cs_request-soap)* node with the exception that it only supports OCPP 1.6 JSON commands.
 
 
 ## examples
 
 ![alt text](./images/clippednode-redexample.png "example flow found in the examples folder")
 
-In the root of the OCPP node module folder is a folder named examples. This is where you can find example flows that may be useful in setting up your OCCP situation. Currently a single example file exists which you can import into node-red that sets up a Central System node with a few basic Charge Point nodes. This is by no means a full production example, but just a starting point for those who may be interested in a way to setup the nodes.
+In the root of the OCPP node module folder is a folder named examples. This is where you can find example flows that may be useful in setting up your OCCP situation. Currently a single example file exists which you can import into node-red that sets up a Central System node with a few basic Charge Point nodes. This is by no means a full production example, but just a starting point for those who may be interested in a way to set up the nodes.
 
 
 # Authors
