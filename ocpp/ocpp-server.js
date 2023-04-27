@@ -337,7 +337,7 @@ module.exports = function(RED) {
             let request = [];
 
             request[msgType] = CALL;
-            request[msgId] = data.payload.MessageId || crypto.randomUUID();
+            request[msgId] = data.msgId || crypto.randomUUID();
             request[msgAction] = data.ocpp.command;
             request[msgCallPayload] = data.ocpp.data || {};
 
