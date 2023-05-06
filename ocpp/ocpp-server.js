@@ -386,6 +386,9 @@ module.exports = function(RED) {
 
             let msgParsed;
 
+            // Ensure msgIn is treated as a string not a buffer
+            msgIn = '' + msgIn;
+
             msg.ocpp = {};
             msg.payload = {};
 
