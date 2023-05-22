@@ -24,6 +24,7 @@ const CBIDCONPOSTFIX = '::CONNECTED';
 let ee;
 
 ee = new EventEmitter();
+const cb_map = new Map();
 
 // override the soap envelope to add an additional header to support soap 1.2
 // NOTE: If the npm soap module used by this evolves to support 1.2 on the
@@ -204,6 +205,7 @@ module.exports = function(RED) {
         debug_csserver(`SubProtocols: [${protocols}]`);
         return protocols.includes(requiredSubProto) ? requiredSubProto : false;
       },
+      clientTracking: true
     };
 
     const expressWs = expressws(expressServer, null, { wsOptions });
@@ -220,7 +222,40 @@ module.exports = function(RED) {
     // });
     let wsrequest;
 
-    x.on('connection', function connection() {});
+    x.on('connection', function connection(ws,req) {
+      debug_csserver(`Got a connection from ${req.params.cbid}...`);
+      const cbid = req.params.cbid;
+      let connname = cbid + CBIDCONPOSTFIX;
+      cb_map.set(cbid,ws);
+
+      node.status({
+        fill: 'green',
+        shape: 'dot',
+        text: `Connection from ${cbid}`,
+      });
+
+      // Announce connection
+
+      ee.emit(connname,"connected");
+
+
+      // Remove cbid from map when it closes and emit a message
+      ws.on('close', function () {
+        cb_map.delete(cbid);
+        node.status({
+          fill: 'gray',
+          shape: 'dot',
+          text: `Disconnected from ${cbid}`,
+        });
+        ee.emit(connname,"disconnected");
+        debug_csserver(`Lost connection to ${cbid}`);
+      });
+
+      ws.on('message', function(msgIn) {
+        debug_csserver(msgIn);
+      });
+
+    });
 
     let soapServer15, soapServer16;
 
@@ -289,7 +324,7 @@ module.exports = function(RED) {
         debug_csserver(`ws (json) path = ${wspath}`);
 
         expressServer.ws(wspath, function(ws, req, next) {
-          debug_csserver(`Got A Message from ${req.params.cbid}`);
+          debug_csserver(`Got A connection from: ${req.params.cbid}`);
 
           const CALL = 2;
           const CALLRESULT = 3;
@@ -302,8 +337,10 @@ module.exports = function(RED) {
           const msgCallPayload = 3;
           const msgResPayload = 2;
 
-          let reqMsgIdToCmd = {};
+          const reqMsgIdToCmd = new Map();
+
           let msg = {};
+          let cbId = req.params.cbid;
 
           msg.ocpp = {};
           msg.payload = {};
@@ -318,13 +355,10 @@ module.exports = function(RED) {
             text: `Connected on ${node.svcPath16j}/${req.params.cbid}`,
           });
 
+
           // emit to other nodes the connection has been established
           let connname = req.params.cbid + CBIDCONPOSTFIX;
 
-          // Add a connection to the event emitter..
-          ee.on(connname, function() {});
-          // Announce connection
-          ee.emit(connname);
 
           let eventname = req.params.cbid + REQEVTPOSTFIX;
 
@@ -337,7 +371,7 @@ module.exports = function(RED) {
             let request = [];
 
             request[msgType] = CALL;
-            request[msgId] = data.payload.MessageId || crypto.randomUUID();
+            request[msgId] = data.msgId || crypto.randomUUID();
             request[msgAction] = data.ocpp.command;
             request[msgCallPayload] = data.ocpp.data || {};
 
@@ -347,33 +381,56 @@ module.exports = function(RED) {
               cb(err, retData);
             });
 
-            reqMsgIdToCmd[request[msgId]] = request[msgAction];
-            debug_cpserver(`Sending message: ${request[msgAction]} to CS`);
+            debug_csserver(ee.eventNames());
+
+            reqMsgIdToCmd.set(request[msgId], request[msgAction]);
+            debug_csserver(`Sending message: ${request[msgAction]} to CS`);
             ws.send(JSON.stringify(request));
           };
 
           debug_csserver(`Setting up callback for ${eventname}`);
           ee.on(eventname, wsrequest);
 
+/*
           ws.on('open', function() {
-            debug_cpserver(
+            debug_csserver(
               `ws opened for ${eventname}, shutting down emmitters`
             );
+            let x = ee.eventNames();
+            debug_csserver(
+              `Event Names ${x}`);
+            ee.on(connname,function(){});
+            ee.emit(connname,"connected");
           });
 
-          ws.on('close', function(code, reason) {
+          ws.on('connection', function(ws,req) {
+            debug_csserver( `Got a ws.on(connection) for ${eventname}`);
+            ee.on(connname,function(){});
+            ee.emit(connname, "connected");
+          });
+
+          ws.on('close', function ws_close(code, reason) {
             debug_csserver(
               `ws closed for ${eventname}, code ${code}, reason: ${reason}`
             );
-            ee.removeAllListeners(connname);
+            let x = ee.eventNames();
+            debug_csserver(
+              `Event Names ${x}`);
+            ee.emit(connname,"disconnected");
+            //ee.removeAllListeners(connname);
             ee.removeAllListeners(eventname);
+            node.status({
+              fill: 'red',
+              shape: 'circle',
+              text: `Disconnected ${cbId}`
+              });
           });
 
           ws.on('error', function(err) {
             node.log(`Websocket Error: ${err}`);
             debug_csserver(`Websocket Error: ${err}`);
           });
-
+*/
           let callMsgIdToCmd = [];
           let localcbid = req.params.cbid;
 
@@ -382,9 +439,14 @@ module.exports = function(RED) {
           ws.on('message', function(msgIn) {
             let response = [];
 
+            debug_csserver('Yes, I did get a message');
+
             let id = crypto.randomUUID();
 
             let msgParsed;
+
+            // Ensure msgIn is treated as a sring not a buffer
+            msgIn = '' + msgIn;
 
             msg.ocpp = {};
             msg.payload = {};
@@ -467,10 +529,14 @@ module.exports = function(RED) {
                 msg.msgId = msgParsed[msgId];
                 msg.payload.data = msgParsed[msgResPayload];
 
+                debug_csserver(`msg.msgId => ${msg.msgId}`);
                 // Lookup the command name via the returned message ID
-                if (reqMsgIdToCmd[msg.msgId]) {
-                  msg.ocpp.command = reqMsgIdToCmd[msg.msgId];
-                  delete reqMsgIdToCmd[msg.msgId];
+                reqMsgIdToCmd.forEach( function(key,val) {
+                  debug_csserver('key: ' + key + 'value: ' + val);
+                });
+                if (reqMsgIdToCmd.has(msg.msgId)) {
+                  msg.ocpp.command = reqMsgIdToCmd.get(msg.msgId);
+                  reqMsgIdToCmd.delete(msg.msgId);
                 } else {
                   msg.ocpp.command = 'unknown';
                 }
@@ -1055,20 +1121,33 @@ module.exports = function(RED) {
 
     let eventname = node.cbId + REQEVTPOSTFIX;
 
-    debug_csresponse(ee.eventNames());
+    debug_csrequest("Event Names: " + ee.eventNames());
+
+    // Change the node status to show connection status
+    ee.on(node.cbId + CBIDCONPOSTFIX, function con_state(state){
+      let text;
+      let fill;
+      debug_csrequest(`State: ${state}`);
+      if (state == 'connected'){
+        text = `Connected to ${node.cbId}`;
+        fill = 'green';
+      }
+      else {
+        text = `Disconnected from ${node.cbId}`;
+        fill = 'gray';
+      }
+      node.status({
+        fill,
+        shape: 'dot',
+        text
+      });
+    });
 
     if (ee.listenerCount(eventname) < 1) {
       node.status({
         fill: 'blue',
         shape: 'ring',
         text: `Waiting for ${node.cbId}`,
-      });
-      ee.once(node.cbId + CBIDCONPOSTFIX, () => {
-        node.status({
-          fill: 'green',
-          shape: 'dot',
-          text: `Connected to ${node.cbId}`,
-        });
       });
     } else {
       node.status({
@@ -1088,7 +1167,7 @@ module.exports = function(RED) {
 
       debug_csrequest(ee.eventNames());
 
-      if (ee.listenerCount(connname) < 1) {
+      if (cb_map.has(msg.ocpp.chargeBoxIdentity) == false) {
         node.status({
           fill: 'grey',
           shape: 'ring',
@@ -1146,6 +1225,9 @@ module.exports = function(RED) {
 
       if (msg.payload.MessageId) {
         msg.msgId = msg.payload.MessageId;
+      } else if (msg.payload.MessageID) {
+        // This is only here to cover for typo in the original documentation
+        msg.msgId = msg.payload.MessageID;
       }
 
       msg.payload = {};
