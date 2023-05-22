@@ -31,13 +31,13 @@ module.exports = function(RED) {
     const CONTROL = 99;
 
     // for logging...
-    const msgTypeStr = ['unknown', 'unknown', 'received', 'replied', 'error'];
+    const MSGTYPESTR = ['unknown', 'unknown', 'received', 'replied', 'error'];
 
-    const msgType = 0;
-    const msgId = 1;
-    const msgAction = 2;
-    const msgCallPayload = 3;
-    const msgResPayload = 2;
+    const MSGTYPE = 0;
+    const MSGID = 1;
+    const MSGACTION = 2;
+    const MSGCALLPAYLOAD = 3;
+    const MSGRESPAYLOAD = 2;
 
     this.remotecs = RED.nodes.getNode(config.remotecs);
 
@@ -55,15 +55,12 @@ module.exports = function(RED) {
     let _wstomax = (isNaN(Number.parseInt(config.wstomax))) ? WSTOMAX_DEF : Number.parseInt(config.wstomax);
     this.wstomax = parseInt((_wstomax >= this.wstomin)? _wstomax : this.wstomin);
     this.wstoinc = (isNaN(Number.parseInt(config.wstoinc))) ? WSTOINC_DEF : Number.parseInt(config.wstoinc);
-    // this.wstomin = 30;
-    // this.wstomax = 360;
-    // this.wstoinc = 5;
 
     const node = this;
 
     node.status({ fill: 'blue', shape: 'ring', text: 'OCPP CS 1.6' });
 
-    node.reqKV = {};
+    node.req_map = new Map();
 
     const logger = new Logger(this, this.pathlog, this.name);
     logger.enabled = (this.logging && (typeof this.pathlog === 'string') && this.pathlog !== '');
@@ -106,7 +103,7 @@ module.exports = function(RED) {
     // Add a ping timer handle
     let hPingTimer = null;
 
-    const ws_options = {
+    const wsOptions = {
       // WebSocket: Websocket, // custom WebSocket constructor
       connectionTimeout: 5000,
       handshaketimeout: 5000,
@@ -116,15 +113,15 @@ module.exports = function(RED) {
 
     // Not sure that either one of these will get called since using the
     // websockets-reconnect
-    let ws_ping = function(){
+    const wsPing = function(){
       debug('Got Ping');
       ws.pong();
     };
-    let ws_pong = function(){
+    const wsPong = function(){
       debug('Got Pong');
     };
 
-    let ws_open = function(){
+    const wsOpen = function(){
       let msg = {};
       msg.ocpp = {};
       // msg.payload = {};
@@ -142,7 +139,7 @@ module.exports = function(RED) {
       hPingTimer = setInterval(() => { ws.ping(); }, 3000);
     };
     
-    let ws_close = function(code, reason){
+    const wsClose = function(code, reason){
       let msg = {};
       msg.ocpp = {};
       // msg.payload = {};
@@ -164,17 +161,17 @@ module.exports = function(RED) {
         hPingTimer = null;
       }
 
-      ws.removeEventListener('open',ws_open);
-      ws.removeEventListener('close',ws_open);
-      ws.removeEventListener('error',ws_open);
-      ws.removeEventListener('message',ws_open);
-      ws.removeEventListener('ping',ws_ping);
-      ws.removeEventListener('pong',ws_pong);
+      ws.removeEventListener('open',wsOpen);
+      ws.removeEventListener('close',wsClose);
+      ws.removeEventListener('error',wsError);
+      ws.removeEventListener('message',wsMessage);
+      ws.removeEventListener('ping',wsPing);
+      ws.removeEventListener('pong',wsPong);
 
       if (!wsnoreconn){
         wsreconncnt += 1;
         node.status( { fill: 'red', shape: 'dot', text: `(${wsreconncnt}) Reconnecting` });
-        conto = setTimeout( () => ws_connect(), wstocur * 1000);
+        conto = setTimeout( () => wsConnect(), wstocur * 1000);
         debug(`ws reconnect timeout: ${wstocur}`);
         wstocur += +node.wstoinc;
         wstocur = (wstocur >= node.wstomax) ? node.wstomax : wstocur;
@@ -184,12 +181,12 @@ module.exports = function(RED) {
     };
 
 
-    let ws_error = function(err){
+    const wsError = function(err){
       node.log('Websocket error:', {err});
       // debug('Websocket error:', {err});
     };
 
-    let ws_message = function(event){
+    const wsMessage = function(event){
       debug('Got a message ');
       let msgIn = event.data;
       let msg = {};
@@ -210,17 +207,17 @@ module.exports = function(RED) {
         msgParsed = JSON.parse(msgIn);
       }
 
-      logger.log(msgTypeStr[msgParsed[msgType]], JSON.stringify(msgParsed));
+      logger.log(MSGTYPESTR[msgParsed[MSGTYPE]], JSON.stringify(msgParsed));
 
-      if (msgParsed[msgType] == CALL) {
-        debug(`Got a CALL Message ${msgParsed[msgId]}`);
+      if (msgParsed[MSGTYPE] == CALL) {
+        debug(`Got a CALL Message ${msgParsed[MSGID]}`);
         // msg.msgId = msgParsed[msgId];
         msg.msgId = id;
-        msg.ocpp.MessageId = msgParsed[msgId];
+        msg.ocpp.MessageId = msgParsed[MSGID];
         msg.ocpp.msgType = CALL;
-        msg.ocpp.command = msgParsed[msgAction];
-        msg.payload.command = msgParsed[msgAction];
-        msg.payload.data = msgParsed[msgCallPayload];
+        msg.ocpp.command = msgParsed[MSGACTION];
+        msg.payload.command = msgParsed[MSGACTION];
+        msg.payload.data = msgParsed[MSGCALLPAYLOAD];
 
         let to = setTimeout(function(id) {
           // node.log("kill:" + id);
@@ -234,11 +231,11 @@ module.exports = function(RED) {
         // This makes the response async so that we pass the responsibility onto the response node
         ee.once(id, function(returnMsg) {
           clearTimeout(to);
-          response[msgType] = CALLRESULT;
-          response[msgId] = msgParsed[msgId];
-          response[msgResPayload] = returnMsg;
+          response[MSGTYPE] = CALLRESULT;
+          response[MSGID] = msgParsed[MSGID];
+          response[MSGRESPAYLOAD] = returnMsg;
 
-          logger.log(msgTypeStr[response[msgType]], JSON.stringify(response).replace(/,/g, ', '));
+          logger.log(MSGTYPESTR[response[MSGTYPE]], JSON.stringify(response).replace(/,/g, ', '));
 
           ws.send(JSON.stringify(response));
 
@@ -246,18 +243,18 @@ module.exports = function(RED) {
         node.status({fill: 'green', shape: 'dot', text: `message in: ${msg.ocpp.command}`});
         debug(`${ws.url} : message in: ${msg.ocpp.command}`);
         node.send(msg);
-      } else if (msgParsed[msgType] == CALLRESULT) {
-        debug(`Got a CALLRESULT msgId ${msgParsed[msgId]}`);
-        msg.msgId = msgParsed[msgId];
-        msg.ocpp.MessageId = msgParsed[msgId];
+      } else if (msgParsed[MSGTYPE] == CALLRESULT) {
+        debug(`Got a CALLRESULT msgId ${msgParsed[MSGID]}`);
+        msg.msgId = msgParsed[MSGID];
+        msg.ocpp.MessageId = msgParsed[MSGID];
         msg.ocpp.msgType = CALLRESULT;
-        msg.payload.data = msgParsed[msgResPayload];
+        msg.payload.data = msgParsed[MSGRESPAYLOAD];
 
         msg.ocpp.websocket = (node.wsconnected)? 'ONLINE' : 'OFFLINE';
 
-        if (node.reqKV.hasOwnProperty(msg.msgId)){
-          msg.ocpp.command = node.reqKV[msg.msgId];
-          delete node.reqKV[msg.msgId];
+        if (node.req_map.has(msg.msgId)){
+          msg.ocpp.command = node.req_map.get(msg.msgId);
+          node.req_map.delete(msg.msgId);
         } else {
           msg.ocpp.command = 'unknown';
         }
@@ -270,39 +267,39 @@ module.exports = function(RED) {
 
     };
 
-    function ws_connect(){
+    const wsConnect = function() {
       reconn_debug();
       try {
-        ws = new Websocket(csmsURL.href, OCPPPROTOCOL, ws_options);
+        ws = new Websocket(csmsURL.href, OCPPPROTOCOL, wsOptions);
         ws.timeout = 5000;
-        debug(`${node.cbId} ws_connect()`);
-        ws.addEventListener('open',ws_open);
-        ws.addEventListener('close',ws_close);
-        ws.addEventListener('error',ws_error);
-        ws.addEventListener('message',ws_message);
-        ws.addEventListener('ping',ws_ping);
-        ws.addEventListener('pong',ws_pong);
+        debug(`${node.cbId} wsConnect()`);
+        ws.addEventListener('open',wsOpen);
+        ws.addEventListener('close',wsClose);
+        ws.addEventListener('error',wsError);
+        ws.addEventListener('message',wsMessage);
+        ws.addEventListener('ping',wsPing);
+        ws.addEventListener('pong',wsPong);
       }catch(error){
         debug(`Websocket Error: ${error}`);
         return;
       }
     };
 
-    function ws_reconnect(){
+    const wsReconnect = function(){
       debug('Clearing Timeout');
       clearTimeout(conto);
       try {
         if (ws){
-          ws.removeEventListener('open',ws_open);
-          ws.removeEventListener('close',ws_close);
-          ws.removeEventListener('error',ws_error);
-          ws.removeEventListener('message',ws_message);
-          ws.removeEventListener('ping',ws_ping);
-          ws.removeEventListener('pong',ws_pong);
+          ws.removeEventListener('open',wsOpen);
+          ws.removeEventListener('close',wsClose);
+          ws.removeEventListener('error',wsError);
+          ws.removeEventListener('message',wsMessage);
+          ws.removeEventListener('ping',wsPing);
+          ws.removeEventListener('pong',wsPong);
           ws.close();
         }
         clearTimeout(conto);
-        ws_connect();
+        wsConnect();
       }catch(error){
         debug(`Websocket Error: ${error}`);
         return;
@@ -313,7 +310,7 @@ module.exports = function(RED) {
     //
     if (node.auto_connect && csmsURL){
       node.status({fill: 'blue', shape: 'dot', text: `Connecting...`});
-      ws_connect();
+      wsConnect();
     }
 
 
@@ -329,21 +326,21 @@ module.exports = function(RED) {
 
       debug(JSON.stringify(msg));
 
-      request[msgType] = msg.payload.msgType || CALL;
-      request[msgId] = msg.payload.MessageId || crypto.randomUUID();
+      request[MSGTYPE] = msg.payload.msgType || CALL;
+      request[MSGID] = msg.payload.MessageId || crypto.randomUUID();
 
-      if (request[msgType] == CONTROL){
+      if (request[MSGTYPE] == CONTROL) {
 
-        request[msgAction] = msg.payload.command || node.command;
+        request[MSGACTION] = msg.payload.command || node.command;
 
-        if (!request[msgAction]){
+        if (!request[MSGACTION]){
           const errStr = 'ERROR: Missing Control Command in JSON request message';
           node.error(errStr);
           debug(errStr);
           return;
         }
 
-        switch (request[msgAction].toLowerCase()){
+        switch (request[MSGACTION].toLowerCase()){
           case 'connect':
             if (msg.payload.data && msg.payload.data.hasOwnProperty('cbId')){
               this.cbId = msg.payload.data.cbId;
@@ -369,7 +366,7 @@ module.exports = function(RED) {
             wsnoreconn = false;
             wsreconncnt = 0;
             wstocur = parseInt(node.wstomin);
-            ws_reconnect(); 
+            wsReconnect(); 
             break;
           case 'close':
             wsnoreconn = true;
@@ -391,13 +388,13 @@ module.exports = function(RED) {
         }
 
 
-        logger.log(messageTypeStr[request[msgType]], JSON.stringify(request).replace(/,/g, ', '));
+        logger.log(messageTypeStr[request[MSGTYPE]], JSON.stringify(request).replace(/,/g, ', '));
 
-      } else if (node.wsconnected == true){
-        if (request[msgType] == CALL){
-          request[msgAction] = msg.payload.command || node.command;
+      } else if (node.wsconnected == true) {
+        if (request[MSGTYPE] == CALL) {
+          request[MSGACTION] = msg.payload.command || node.command;
 
-          if (!request[msgAction]){
+          if (!request[MSGACTION]) {
             const errStr = 'ERROR: Missing Command in JSON request message';
             node.error(errStr);
             debug(errStr);
@@ -405,34 +402,43 @@ module.exports = function(RED) {
           }
 
           let cmddata;
-          if (node.cmddata){
+          if (node.cmddata) {
             try {
               cmddata = JSON.parse(node.cmddata);
-            } catch (e){
+            } catch (e) {
               node.warn('OCPP JSON client node invalid payload.data for message (' + msg.ocpp.command + '): ' + e.message);
               return;
             }
 
           }
 
-          request[msgCallPayload] = msg.payload.data || cmddata || {};
-          if (!request[msgCallPayload]){
+          request[MSGCALLPAYLOAD] = msg.payload.data || cmddata || {};
+          if (!request[MSGCALLPAYLOAD]){
             const errStr = 'ERROR: Missing Data in JSON request message';
             node.error(errStr);
             debug(errStr);
             return;
           }
 
-          node.reqKV[request[msgId]] = request[msgAction];
-          debug(`Sending message: ${request[msgAction]}, ${request}`);
-          node.status({fill: 'green', shape: 'dot', text: `request out: ${request[msgAction]}`});
-        } else {
-          request[msgResPayload] = msg.payload.data || {};
-          debug(`Sending response message: ${JSON.stringify(request[msgResPayload])}`);
+          node.req_map.set(request[MSGID], request[MSGACTION]);
+          debug(`Sending message: ${request[MSGACTION]}, ${request}`);
+          node.status({fill: 'green', shape: 'dot', text: `request out: ${request[MSGACTION]}`});
+
+        } else { // This is a type 3 "response" message
+          
+          // Set the response message ID either users defined or original (preferred)
+          if (msg.payload.MessageId) {
+            request[MSGID] = msg.payload.MessageId;
+          } else if (msg.ocpp && msg.ocpp.MessageId) {
+            request[MSGID] = msg.ocpp.MessageId;
+          };
+
+          request[MSGRESPAYLOAD] = msg.payload.data || {};
+          debug(`Sending response message: ${JSON.stringify(request[MSGRESPAYLOAD])}`);
           node.status({fill: 'green', shape: 'dot', text: 'sending response'});
         }
 
-        logger.log(messageTypeStr[request[msgType]], JSON.stringify(request).replace(/,/g, ', '));
+        logger.log(messageTypeStr[request[MSGTYPE]], JSON.stringify(request).replace(/,/g, ', '));
 
         ws.send(JSON.stringify(request));
       }
