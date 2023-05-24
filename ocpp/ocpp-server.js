@@ -436,6 +436,28 @@ module.exports = function(RED) {
 
           debug_csserver(`Websocket connection to : ${localcbid}`);
 
+          
+          msg = {
+            ocpp : {
+              websocket : 'ONLINE',
+              chargeBoxIdentity : localcbid
+            }
+          };
+          node.send(msg);
+
+          ws.on('close', function ws_close(code, reason) {
+            msg = {
+              ocpp : {
+                websocket : 'OFFLINE',
+                chargeBoxIdentity : localcbid,
+                code : code,
+                reason : reason,                
+              }
+            };        
+
+            node.send(msg);
+          });
+          
           ws.on('message', function(msgIn) {
             let response = [];
 
