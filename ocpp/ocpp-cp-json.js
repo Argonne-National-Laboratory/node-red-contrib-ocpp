@@ -457,6 +457,7 @@ module.exports = function(RED) {
         node.send(msg);//send update
         NetStatus = msg.ocpp.websocket;
       }
+      wsnoreconn = true;
       ws.close();
     });
 
