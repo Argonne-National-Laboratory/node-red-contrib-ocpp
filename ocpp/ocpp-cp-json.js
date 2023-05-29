@@ -12,7 +12,6 @@ const debug = require('debug')('anl:ocpp:cp:server:json');
 const crypto = require('crypto');
 
 let ee = new EventEmitter();
-let NetStatus = 'OFFLINE';
 
 module.exports = function(RED) {
   function OCPPChargePointJNode(config) {
@@ -34,6 +33,8 @@ module.exports = function(RED) {
     const msgResPayload = 2;
 
     var node = this;
+    
+    let NetStatus = 'OFFLINE';
 
     node.reqKV = {};
 
