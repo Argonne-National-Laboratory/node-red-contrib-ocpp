@@ -223,7 +223,6 @@ module.exports = function(RED) {
     let wsrequest;
 
     x.on('connection', function connection(ws,req) {
-      debug_csserver(`Req: ${req}`);
       if (req.params){
         debug_csserver(`Got a connection from ${req.params.cbid}...`);
         const cbid = req.params.cbid;
