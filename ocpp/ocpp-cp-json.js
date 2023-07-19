@@ -12,7 +12,6 @@ const url = require('node:url');
 const path = require('node:path');
 
 let ee = new EventEmitter();
-let NetStatus = 'OFFLINE';
 
 const WSTOMIN_DEF = 5;
 const WSTOMAX_DEF = 360;
@@ -71,6 +70,7 @@ module.exports = function(RED) {
     let wstocur = parseInt(node.wstomin);
     let conto;
     let wsnoreconn = false;
+    let NetStatus = 'OFFLINE';
 
     function reconn_debug() {
       debug(`wstomin: ${node.wstomin}`);
@@ -457,6 +457,7 @@ module.exports = function(RED) {
         node.send(msg);//send update
         NetStatus = msg.ocpp.websocket;
       }
+      wsnoreconn = true;
       ws.close();
     });
 
