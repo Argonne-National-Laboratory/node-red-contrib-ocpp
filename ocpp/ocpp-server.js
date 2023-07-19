@@ -223,38 +223,40 @@ module.exports = function(RED) {
     let wsrequest;
 
     x.on('connection', function connection(ws,req) {
-      debug_csserver(`Got a connection from ${req.params.cbid}...`);
-      const cbid = req.params.cbid;
-      let connname = cbid + CBIDCONPOSTFIX;
-      cb_map.set(cbid,ws);
+      debug_csserver(`Req: ${req}`);
+      if (req.params){
+        debug_csserver(`Got a connection from ${req.params.cbid}...`);
+        const cbid = req.params.cbid;
+        let connname = cbid + CBIDCONPOSTFIX;
+        cb_map.set(cbid,ws);
 
-      node.status({
-        fill: 'green',
-        shape: 'dot',
-        text: `Connection from ${cbid}`,
-      });
-
-      // Announce connection
-
-      ee.emit(connname,"connected");
-
-
-      // Remove cbid from map when it closes and emit a message
-      ws.on('close', function () {
-        cb_map.delete(cbid);
         node.status({
-          fill: 'gray',
+          fill: 'green',
           shape: 'dot',
-          text: `Disconnected from ${cbid}`,
+          text: `Connection from ${cbid}`,
         });
-        ee.emit(connname,"disconnected");
-        debug_csserver(`Lost connection to ${cbid}`);
-      });
 
-      ws.on('message', function(msgIn) {
-        debug_csserver(msgIn);
-      });
+        // Announce connection
 
+        ee.emit(connname,"connected");
+
+
+        // Remove cbid from map when it closes and emit a message
+        ws.on('close', function () {
+          cb_map.delete(cbid);
+          node.status({
+            fill: 'gray',
+            shape: 'dot',
+            text: `Disconnected from ${cbid}`,
+          });
+          ee.emit(connname,"disconnected");
+          debug_csserver(`Lost connection to ${cbid}`);
+        });
+
+        ws.on('message', function(msgIn) {
+          debug_csserver(msgIn);
+        });
+      }
     });
 
     let soapServer15, soapServer16;
