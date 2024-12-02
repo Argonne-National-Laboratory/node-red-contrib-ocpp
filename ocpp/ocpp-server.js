@@ -227,7 +227,13 @@ module.exports = function(RED) {
         debug_csserver(`Got a connection from ${req.params.cbid}...`);
         const cbid = req.params.cbid;
         let connname = cbid + CBIDCONPOSTFIX;
-        cb_map.set(cbid,ws);
+        const previous_connection = cb_map.get(cbid);
+        if (previous_connection !== undefined) {
+            debug_csserver(`There's an existing connection with ${req.params.cbid}, terminating the old one...`);
+            // We can only handle one connection at a time. Terminate the previous one.
+            previous_connection.close(1002);
+        }
+        cb_map.set(cbid, ws);
 
         node.status({
           fill: 'green',
@@ -242,13 +248,15 @@ module.exports = function(RED) {
 
         // Remove cbid from map when it closes and emit a message
         ws.on('close', function () {
-          cb_map.delete(cbid);
+          if (cb_map.get(cbid) === this) {
+              cb_map.delete(cbid);
+          }
           node.status({
             fill: 'gray',
             shape: 'dot',
             text: `Disconnected from ${cbid}`,
           });
-          ee.emit(connname,"disconnected");
+          ee.emit(connname, "disconnected");
           debug_csserver(`Lost connection to ${cbid}`);
         });
 
@@ -437,7 +445,7 @@ module.exports = function(RED) {
 
           debug_csserver(`Websocket connection to : ${localcbid}`);
 
-          
+
           msg = {
             ocpp : {
               websocket : 'ONLINE',
@@ -452,13 +460,13 @@ module.exports = function(RED) {
                 websocket : 'OFFLINE',
                 chargeBoxIdentity : localcbid,
                 code : code,
-                reason : reason,                
+                reason : reason,
               }
-            };        
+            };
 
             node.send(msg);
           });
-          
+
           ws.on('message', function(msgIn) {
             let response = [];
 
