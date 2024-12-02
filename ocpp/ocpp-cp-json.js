@@ -49,7 +49,7 @@ module.exports = function(RED) {
     this.logging = config.log || false;
     this.pathlog = config.pathlog;
 
-    this.auto_connect = config.wsdelayconnect || false;
+    this.delay_auto_connect = config.wsdelayconnect || false;
     this.wstomin = (isNaN(Number.parseInt(config.wstomin))) ? WSTOMIN_DEF : Number.parseInt(config.wstomin);
     let _wstomax = (isNaN(Number.parseInt(config.wstomax))) ? WSTOMAX_DEF : Number.parseInt(config.wstomax);
     this.wstomax = parseInt((_wstomax >= this.wstomin)? _wstomax : this.wstomin);
@@ -308,7 +308,7 @@ module.exports = function(RED) {
 
     // Only do this if auto-connect is enabled
     //
-    if (node.auto_connect && csmsURL){
+    if (!(node.delay_auto_connect) && csmsURL){
       node.status({fill: 'blue', shape: 'dot', text: `Connecting...`});
       wsConnect();
     }
