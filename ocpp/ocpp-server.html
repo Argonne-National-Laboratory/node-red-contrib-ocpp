@@ -1,627 +1,628 @@
 <style>
-    .header {
-        text-decoration: underline;
-        font-weight: bold;
-        margin-top: 5px;
-    }
-    .bordered {
-        padding-left: 12px;
-        padding-top: 4px;
-        border: 1px solid lightgrey;
-        box-sizing: border-box;
-    }
+  .header {
+    text-decoration: underline;
+    font-weight: bold;
+    margin-top: 5px;
+  }
+  .bordered {
+    padding-left: 12px;
+    padding-top: 4px;
+    border: 1px solid lightgrey;
+    box-sizing: border-box;
+  }
 </style>
 <script type="text/javascript">
-    function valPath15(v){
-        var result = true;
-        if (this.enabled15){
-            var v1 = v.toLowerCase();
-            if (this.enabled16 && (v1 == this.path16.toLowerCase())) result = false;
-            if (result && this.enabled16j && (v1 == this.path16j.toLowerCase())) result = false;
-        }
-        return result;
+  function valPath15(v) {
+    var result = true;
+    if (this.enabled15) {
+      var v1 = v.toLowerCase();
+      if (this.enabled16 && v1 == this.path16.toLowerCase()) result = false;
+      if (result && this.enabled16j && v1 == this.path16j.toLowerCase())
+        result = false;
     }
-    function valPath16(v){
-        var result = true;
-        if (this.enabled16){
-            var v1 = v.toLowerCase();
-            if (this.enabled15 && (v1 == this.path15.toLowerCase())) result = false;
-            if (result && this.enabled16j && (v1 == this.path16j.toLowerCase())) result = false;
-        }
-        return result;
+    return result;
+  }
+  function valPath16(v) {
+    var result = true;
+    if (this.enabled16) {
+      var v1 = v.toLowerCase();
+      if (this.enabled15 && v1 == this.path15.toLowerCase()) result = false;
+      if (result && this.enabled16j && v1 == this.path16j.toLowerCase())
+        result = false;
     }
-    function valPath16j(v){
-        var result = true;
-        if (this.enabled16j){
-            var v1 = v.toLowerCase();
-            if (this.enabled15 && (v1 == this.path15.toLowerCase())) result = false;
-            if (result && this.enabled16 && (v1 == this.path16.toLowerCase())) result = false;
-        }
-        return result;
+    return result;
+  }
+  function valPath16j(v) {
+    var result = true;
+    if (this.enabled16j) {
+      var v1 = v.toLowerCase();
+      if (this.enabled15 && v1 == this.path15.toLowerCase()) result = false;
+      if (result && this.enabled16 && v1 == this.path16.toLowerCase())
+        result = false;
     }
+    return result;
+  }
 
-    RED.nodes.registerType('CS server', {
-        category: 'OCPP',
-        color: '#3FADB5',
-        defaults: {
-            name: {value: "", required: false},
-            port: {value: "", required: true, validate: RED.validators.number()},
-            enabled15: { value: false, required: true},
-            path15: {value: "", required: false, validate: valPath15},
-            enabled16: { value: false, required: true},
-            path16: {value: "", required: false, validate: valPath16},
-            enabled16j: { value: true, required: true},
-            path16j: {value: "", required: false, validate: valPath16j},
-            log: { value: false, required: true },
-            pathlog: {value: "", required: false}
+  RED.nodes.registerType("CS server", {
+    category: "OCPP",
+    color: "#3FADB5",
+    defaults: {
+      name: { value: "", required: false },
+      // port: {value: "", required: true, validate: RED.validators.number()},
+      port: { value: "", required: true },
+      portType: { value: "env", required: true },
+      enabled15: { value: false, required: true },
+      path15: { value: "", required: false, validate: valPath15 },
+      enabled16: { value: false, required: true },
+      path16: { value: "", required: false, validate: valPath16 },
+      enabled16j: { value: true, required: true },
+      path16j: { value: "", required: false, validate: valPath16j },
+      log: { value: false, required: true },
+      pathlog: { value: "", required: false },
+    },
+    inputs: 0,
+    outputs: 2,
+    icon: "white-globe.png",
+    label: function () {
+      let tmpName = "OCPP Server";
+      if (this.port) tmpName = "OCPP Server Port " + this.port;
+
+      return this.name || tmpName;
+    },
+    oneditprepare: function () {
+      var cblist = [
+        {
+          cb: "#node-input-enabled15",
+          cont: "#container15",
         },
-        inputs: 0,
-        outputs: 1,
-        icon: "white-globe.png",
-        label: function() {
-            let tmpName = "OCPP Server";
-            if (this.port)
-                tmpName = "OCPP Server Port " + this.port;
-                            
-            return this.name||tmpName;
+        {
+          cb: "#node-input-enabled16",
+          cont: "#container16",
         },
-        oneditprepare: function() {
-
-            var cblist = [
-                { 
-                    cb: "#node-input-enabled15",
-                    cont: "#container15"
-                },
-                { 
-                    cb: "#node-input-enabled16",
-                    cont: "#container16"
-                },
-                { 
-                    cb: "#node-input-enabled16j",
-                    cont: "#container16j"
-                },
-                { 
-                    cb: "#node-input-log",
-                    cont: "#containerlog"
-                },
-            ]
-
-            function updateHideContainer(checkbox,container){
-                if ($(checkbox).is(':checked')){
-                    $(container).show();
-                }
-                else{
-                    $(container).hide();
-
-                }
-            }
-
-            cblist.forEach(x => {
-                updateHideContainer(x.cb,x.cont);
-                $(x.cb).on('click', function(){ 
-                    updateHideContainer(x.cb,x.cont);
-                });
-            });
-
+        {
+          cb: "#node-input-enabled16j",
+          cont: "#container16j",
         },
-        oneditsave: function() {
-            var e16 = $('#node-input-enabled16').is(':checked');            
-            var e15 = $('#node-input-enabled15').is(':checked');                        
-            var e16j = $('#node-input-enabled16j').is(':checked');                        
-            if (!e16 && !e15 && !e16j){
-                alert("No OCPP services are enabled.")
-            }
+        {
+          cb: "#node-input-log",
+          cont: "#containerlog",
+        },
+      ];
+
+      function updateHideContainer(checkbox, container) {
+        if ($(checkbox).is(":checked")) {
+          $(container).show();
+        } else {
+          $(container).hide();
         }
+      }
 
-    });
+      cblist.forEach((x) => {
+        updateHideContainer(x.cb, x.cont);
+        $(x.cb).on("click", function () {
+          updateHideContainer(x.cb, x.cont);
+        });
+      });
 
-    
-    RED.nodes.registerType('server response', {
-        category: 'OCPP',
-        color: '#3FADB5',
-        defaults: {
-            name: {value: "", required: false},
+      $("#node-input-port").typedInput({
+        types: ["num", "env"],
+        typeField: "#node-input-portType",
+        default: "num",
+      });
+    },
+    oneditsave: function () {
+      var e16 = $("#node-input-enabled16").is(":checked");
+      var e15 = $("#node-input-enabled15").is(":checked");
+      var e16j = $("#node-input-enabled16j").is(":checked");
+      if (!e16 && !e15 && !e16j) {
+        alert("No OCPP services are enabled.");
+      }
+    },
+  });
+
+  RED.nodes.registerType("server response", {
+    category: "OCPP",
+    color: "#3FADB5",
+    defaults: {
+      name: { value: "", required: false },
+    },
+    inputs: 1,
+    outputs: 0,
+    align: "right",
+    icon: "white-globe.png",
+    label: function () {
+      return this.name || "server response";
+    },
+    labelStyle: function () {
+      return this.name ? "node_label_italic" : "";
+    },
+  });
+
+  RED.nodes.registerType("CP server SOAP", {
+    category: "OCPP",
+    color: "#3FADB5",
+    defaults: {
+      name: { value: "", required: false },
+      port: { value: "", required: true, validate: RED.validators.number() },
+      enabled15: { value: false, required: true },
+      path15: { value: "", required: true },
+      enabled16: { value: true, required: true },
+      path16: {
+        value: "",
+        required: true,
+        validate: function (v) {
+          return v.toLowerCase() != this.path15.toLowerCase();
         },
-        inputs: 1,
-        outputs: 0,
-        align: 'right',
-        icon: "white-globe.png",
-        label: function() {
-            return this.name||"server response";
+      },
+      enabled16j: { value: true, required: false },
+      path16j: {
+        value: "",
+        required: false,
+        validate: function (v) {
+          return v.toLowerCase() != this.path16.toLowerCase();
         },
-        labelStyle: function() {
-            return this.name?"node_label_italic":"";
+      },
+      log: { value: true, required: true },
+      pathlog: { value: "", required: false },
+    },
+    inputs: 0,
+    outputs: 1,
+    icon: "white-globe.png",
+    label: function () {
+      let tmpName = "OCPP CP Server";
+      if (this.port) tmpName = "OCPP CP Server Port " + this.port;
+
+      return this.name || tmpName;
+    },
+    oneditprepare: function () {
+      var cblist = [
+        {
+          cb: "#node-input-enabled15",
+          cont: "#container15",
+        },
+        {
+          cb: "#node-input-enabled16",
+          cont: "#container16",
+        },
+        {
+          cb: "#node-input-enabled16j",
+          cont: "#container16j",
+        },
+        {
+          cb: "#node-input-log",
+          cont: "#containerlog",
+        },
+      ];
+
+      function updateHideContainer(checkbox, container) {
+        if ($(checkbox).is(":checked")) {
+          $(container).show();
+        } else {
+          $(container).hide();
         }
+      }
 
-    });
+      cblist.forEach((x) => {
+        updateHideContainer(x.cb, x.cont);
+        $(x.cb).on("click", function () {
+          updateHideContainer(x.cb, x.cont);
+        });
+      });
+    },
+    oneditsave: function () {
+      var e16 = $("#node-input-enabled16").is(":checked");
+      var e15 = $("#node-input-enabled15").is(":checked");
+      var e16j = $("#node-input-enabled16j").is(":checked");
+      if (!e16 && !e15 && !e16j) {
+        alert("No OCPP CP services are enabled.");
+      }
+    },
+  });
 
-    RED.nodes.registerType('CP server SOAP', {
-        category: 'OCPP',
-        color: '#3FADB5',
-        defaults: {
-            name: {value: "", required: false},
-            port: {value: "", required: true, validate: RED.validators.number()},
-            enabled15: { value: false, required: true},
-            path15: {value: "", required: true},
-            enabled16: { value: true, required: true},
-            path16: {value: "", required: true, validate: function(v) { return v.toLowerCase() != this.path15.toLowerCase();}},
-            enabled16j: { value: true, required: false},
-            path16j: {value: "", required: false, validate: function(v) { return v.toLowerCase() != this.path16.toLowerCase();}},
-            log: { value: true, required: true },
-            pathlog: {value: "", required: false}
-            
-        },
-        inputs: 0,
-        outputs: 1,
-        icon: "white-globe.png",
-        label: function() {
-            let tmpName = "OCPP CP Server";
-            if (this.port)
-                tmpName = "OCPP CP Server Port " + this.port;
-                            
-            return this.name||tmpName;
-        },
-        oneditprepare: function() {
-            var cblist = [
-                { 
-                    cb: "#node-input-enabled15",
-                    cont: "#container15"
-                },
-                { 
-                    cb: "#node-input-enabled16",
-                    cont: "#container16"
-                },
-                { 
-                    cb: "#node-input-enabled16j",
-                    cont: "#container16j"
-                },
-                { 
-                    cb: "#node-input-log",
-                    cont: "#containerlog"
-                },
-            ]
-
-            function updateHideContainer(checkbox,container){
-                if ($(checkbox).is(':checked')){
-                    $(container).show();
-                }
-                else{
-                    $(container).hide();
-
-                }
-            }
-
-            cblist.forEach(x => {
-                updateHideContainer(x.cb,x.cont);
-                $(x.cb).on('click', function(){ 
-                    updateHideContainer(x.cb,x.cont);
-                });
-            });
-        },
-        oneditsave: function() {
-            var e16 = $('#node-input-enabled16').is(':checked');            
-            var e15 = $('#node-input-enabled15').is(':checked');                        
-            var e16j = $('#node-input-enabled16j').is(':checked');                        
-            if (!e16 && !e15 && !e16j){
-                alert("No OCPP CP services are enabled.")
-            }
-        }
-
-    });
-
-    RED.nodes.registerType('CS request JSON', {
-        category: 'OCPP',
-        color: '#3FADB5',
-        defaults: {
-            name: {value: "", required: false},
-            remotecb: {value: "", type: "ocpp-remotej-cp"},
-            command: { value: "", required: false},
-            cmddata: { value: "", required: false},
-            log: { value: true, required: true },
-            pathlog: {value: "", required: false}
-        },
-        inputs: 1,
-        outputs: 1,
-        align: 'right',
-        icon: "white-globe.png",
-        label: function() {
-            var cbNode = RED.nodes.node(this.remotecb);
-            return this.name||(cbNode?cbNode.label():"CS request JSON");
-        },
-        outputLabels: function () {
-            var cbNode = RED.nodes.node(this.remotecb);
-            return cbNode? `from ${cbNode.label()}`:'output';
-        },
-        labelStyle: function() {
-            return this.name?"node_label_italic":"";
-        }
-
-    });
-
-
+  RED.nodes.registerType("CS request JSON", {
+    category: "OCPP",
+    color: "#3FADB5",
+    defaults: {
+      name: { value: "", required: false },
+      remotecb: { value: "", type: "ocpp-remotej-cp" },
+      command: { value: "", required: false },
+      cmddata: { value: "", required: false },
+      log: { value: true, required: true },
+      pathlog: { value: "", required: false },
+    },
+    inputs: 1,
+    outputs: 1,
+    align: "right",
+    icon: "white-globe.png",
+    label: function () {
+      var cbNode = RED.nodes.node(this.remotecb);
+      return this.name || (cbNode ? cbNode.label() : "CS request JSON");
+    },
+    outputLabels: function () {
+      var cbNode = RED.nodes.node(this.remotecb);
+      return cbNode ? `from ${cbNode.label()}` : "output";
+    },
+    labelStyle: function () {
+      return this.name ? "node_label_italic" : "";
+    },
+  });
 </script>
 
 <script type="text/x-red" data-template-name="CS server">
 
-    <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name (defaults to OCPP Server:<PORT>)" />
-    </div>
-    <div class="form-row">
-            <label for="node-input-port"><i class="icon-tag"></i> Port</label>
-            <input type="number" id="node-input-port" placeholder="Port Number (example: 8080)" />
-    </div>
-    <div class="header">OCPP 1.5 SOAP</div>
-    <div class="bordered">
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" value="" id="node-input-enabled15"> 
-                1.5 SOAP enabled
-            </label>
-        </div>
+  <div class="form-row">
+      <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+      <input type="text" id="node-input-name" placeholder="Name (defaults to OCPP Server:<PORT>)" />
+  </div>
+  <div class="form-row">
+          <label for="node-input-port"><i class="icon-tag"></i> Port</label>
+          <input type="text" id="node-input-port" placeholder="Port Number (example: 8080)" />
+          <input type="hidden" id="node-input-portType" />
+  </div>
+  <div class="header">OCPP 1.5 SOAP</div>
+  <div class="bordered">
+      <div class="checkbox">
+          <label>
+              <input type="checkbox" value="" id="node-input-enabled15">
+              1.5 SOAP enabled
+          </label>
+      </div>
 
-        <div id="container15" class="form-row">
-            <label for="node-input-path15"><i class="icon-globe"></i> Path</label>
-            <input type="text" id="node-input-path15" placeholder="OCPP 1.5 path (example: /CentralSystemService15 )" />
-        </div>
-    </div>
-    <div class="header">OCPP 1.6 SOAP</div>
-    <div class="bordered">
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" value="" id="node-input-enabled16">
-                1.6 SOAP enabled
-            </label>
-        </div>
-        <div id="container16" class="form-row">
-            <label for="node-input-path16" ><i class="icon-globe"></i> Path</label>
-            <input type="text" id="node-input-path16" placeholder="OCPP 1.6 path (example: /CentralSystemService16 )" />
-        </div>
-    </div>
-    <div class="header">OCPP 1.6 JSON</div>
-    <div class="bordered">
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" value="" id="node-input-enabled16j">
-                1.6 JSON enabled
-            </label>
-        </div>
-        <div id="container16j" class="form-row">
-            <label for="node-input-path16j" ><i class="icon-globe"></i> Path</label>
-            <input type="text" id="node-input-path16j" placeholder="OCPP 1.6 JSON path (example: /ocpp )" />
-        </div>
-    </div>
-    <div class="header">Logging</div>
-    <div class="bordered">
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" value="" id="node-input-log"/>
-                logging enabled
-            </label>
-        </div>
-        <div id="containerlog" class="form-row">
-            <label for="node-input-pathlog" >
-                <i class="icon-globe"></i> Path
-            </label>
-            <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
-        </div>
-    </div>
-    
+      <div id="container15" class="form-row">
+          <label for="node-input-path15"><i class="icon-globe"></i> Path</label>
+          <input type="text" id="node-input-path15" placeholder="OCPP 1.5 path (example: /CentralSystemService15 )" />
+      </div>
+  </div>
+  <div class="header">OCPP 1.6 SOAP</div>
+  <div class="bordered">
+      <div class="checkbox">
+          <label>
+              <input type="checkbox" value="" id="node-input-enabled16">
+              1.6 SOAP enabled
+          </label>
+      </div>
+      <div id="container16" class="form-row">
+          <label for="node-input-path16" ><i class="icon-globe"></i> Path</label>
+          <input type="text" id="node-input-path16" placeholder="OCPP 1.6 path (example: /CentralSystemService16 )" />
+      </div>
+  </div>
+  <div class="header">OCPP 1.6 JSON</div>
+  <div class="bordered">
+      <div class="checkbox">
+          <label>
+              <input type="checkbox" value="" id="node-input-enabled16j">
+              1.6 JSON enabled
+          </label>
+      </div>
+      <div id="container16j" class="form-row">
+          <label for="node-input-path16j" ><i class="icon-globe"></i> Path</label>
+          <input type="text" id="node-input-path16j" placeholder="OCPP 1.6 JSON path (example: /ocpp )" />
+      </div>
+  </div>
+  <div class="header">Logging</div>
+  <div class="bordered">
+      <div class="checkbox">
+          <label>
+              <input type="checkbox" value="" id="node-input-log"/>
+              logging enabled
+          </label>
+      </div>
+      <div id="containerlog" class="form-row">
+          <label for="node-input-pathlog" >
+              <i class="icon-globe"></i> Path
+          </label>
+          <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
+      </div>
+  </div>
 </script>
 
 <script type="text/x-red" data-help-name="CS server">
-    <p>Central System Service (CS) that accepts incomming requests from OCPP EVSEs (CP)</p>
+  <p>Central System Service (CS) that accepts incomming requests from OCPP EVSEs (CP)</p>
 
-    <h3>Configuration Settings</h3>
-    <dl>
-        <dt>Name:</dt>
-        <dd>The name shown on the workspace</dd>
-        <dt>Port: <i>(example) 8080</i></dt>
-        <dd>The incoming port that the server listens on. If deploying multiple ocpp servers, the port numbers should be unique.</dd>
-        <dt>OCPP 1.x SOAP/JSON enabled</dt>
-        <dd>Enable/disable the protocols supported by this CS node</dd>
-        <dt>Path: <i>(example) /CentralSystemService15</i></dt>
-        <dd>The unique path portion of the server that needs to be configured on the ESVE</dd>
-        <dt>logging enabled</dt>
-        <dd>enables/disables logging for this node</dd>
-        <dt>Path</dt>
-        <dd>Path to file used for logging. Required if "logging enabled" is checked, otherwise logging will be disabled at runtime</dd>        
-    </dl>
+  <h3>Configuration Settings</h3>
+  <dl>
+      <dt>Name:</dt>
+      <dd>The name shown on the workspace</dd>
+      <dt>Port: <i>(example) 8080</i></dt>
+      <dd>The incoming port that the server listens on. If deploying multiple ocpp servers, the port numbers should be unique.</dd>
+      <dt>OCPP 1.x SOAP/JSON enabled</dt>
+      <dd>Enable/disable the protocols supported by this CS node</dd>
+      <dt>Path: <i>(example) /CentralSystemService15</i></dt>
+      <dd>The unique path portion of the server that needs to be configured on the ESVE</dd>
+      <dt>logging enabled</dt>
+      <dd>enables/disables logging for this node</dd>
+      <dt>Path</dt>
+      <dd>Path to file used for logging. Required if "logging enabled" is checked, otherwise logging will be disabled at runtime</dd>
+  </dl>
 
-        <h3>Outputs</h3>
-            <dl class="messge-properties">
-                <dt>ocpp <span class="property-type">object</dt>
-                <dd><code>msg.ocpp</code> objcet containing ocpp related information
-                    <ul>
-                        <li><code>command</code>: the incomming request command</li>
-                        <li><code>chargeBoxIdentity</code>: name identifying the charge box</li>
-                        <li><code>From</code>: optional address of incoming request (SOAP only)</li>
-                        <li><code>MessageID</code>: optional incoming request message id</li>
-                    </ul>
-                </dd>
-                <dt>payload <span class="property-type">object</dt>
-                <dd><code>msg.payload</code> object contains the following:
-                    <ul>
-                        <li><code>command</code>: the incomming request command</li>
-                        <li><code>data</code>: arguments received with the incoming request command stored as an key/value pair</li>
-                    </ul>
+      <h3>Outputs</h3>
+          <dl class="messge-properties">
+              <dt>ocpp <span class="property-type">object</dt>
+              <dd><code>msg.ocpp</code> objcet containing ocpp related information
+                  <ul>
+                      <li><code>command</code>: the incomming request command</li>
+                      <li><code>chargeBoxIdentity</code>: name identifying the charge box</li>
+                      <li><code>From</code>: optional address of incoming request (SOAP only)</li>
+                      <li><code>MessageID</code>: optional incoming request message id</li>
+                  </ul>
+              </dd>
+              <dt>payload <span class="property-type">object</dt>
+              <dd><code>msg.payload</code> object contains the following:
+                  <ul>
+                      <li><code>command</code>: the incomming request command</li>
+                      <li><code>data</code>: arguments received with the incoming request command stored as an key/value pair</li>
+                  </ul>
 
-                </dd>
-            </dl>
+              </dd>
+          </dl>
 
-    <h3>Details</h3>
-        <p><code>msg.msgID</code> contains a unique message identifier that must be passed to the ocpp resonse node along with 
-        the payload (if any) of the response. It is recommended that the <code>msg</code> output from this node remain in tact 
-        and passed all the way through to the ocpp response node, only modifying or replacing the <code>msg.payload</code> portion</p>
-        <p>The response to each incoming message has a lifespan timeout of 2 minutes, so any
-        responses to messages must be returned within that time or the message is simply discarded</p>
-        <p>The <code>msg.payload.data</code> arguments object received from the request vary depending on the command. Refer to the OCPP specification for information
-            about required and optional parameters that may be received for each command.
-
+  <h3>Details</h3>
+      <p><code>msg.msgID</code> contains a unique message identifier that must be passed to the ocpp resonse node along with
+      the payload (if any) of the response. It is recommended that the <code>msg</code> output from this node remain in tact
+      and passed all the way through to the ocpp response node, only modifying or replacing the <code>msg.payload</code> portion</p>
+      <p>The response to each incoming message has a lifespan timeout of 2 minutes, so any
+      responses to messages must be returned within that time or the message is simply discarded</p>
+      <p>The <code>msg.payload.data</code> arguments object received from the request vary depending on the command. Refer to the OCPP specification for information
+          about required and optional parameters that may be received for each command.
 </script>
 
 <script type="text/x-red" data-template-name="server response">
 
-    <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name (defaults to setup name)" />
-    </div>
+  <div class="form-row">
+      <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+      <input type="text" id="node-input-name" placeholder="Name (defaults to setup name)" />
+  </div>
 </script>
 
 <script type="text/x-red" data-help-name="server response">
-    <p>Return response to incoming OCPP requests</p>
-    <h3>Configuration Settings</h3>
-    <dl>
-        <dt>Name:</dt>
-        <dd>The name shown on the workspace</dd>
-    </dl>
+  <p>Return response to incoming OCPP requests</p>
+  <h3>Configuration Settings</h3>
+  <dl>
+      <dt>Name:</dt>
+      <dd>The name shown on the workspace</dd>
+  </dl>
 
-        <h3>Inputs</h3>
-            <dl class="messge-properties">
-                <dt>payload <span class="property-type">object</dt>
-                <dd><code>msg.payload</code> object containing the command specific response to the request. 
-                    <blockquote><i>For example:</i><br/>
-                    <code>msg.payload</code> = { status: "Accepted" }
-                    </blockquote>
-                </dd>
-            </dl>
+      <h3>Inputs</h3>
+          <dl class="messge-properties">
+              <dt>payload <span class="property-type">object</dt>
+              <dd><code>msg.payload</code> object containing the command specific response to the request.
+                  <blockquote><i>For example:</i><br/>
+                  <code>msg.payload</code> = { status: "Accepted" }
+                  </blockquote>
+              </dd>
+          </dl>
 
-    <h3>Details</h3>
-        <p><code>msg.msgID</code> contains a unique message identifier that must be passed to the ocpp resonse node along with 
-        the payload (if any) of the response. It is recommended that the <code>msg</code> output from the ocpp server node remain in tact 
-        and passed all the way through to the ocpp response node, only modifying or replacing the <code>msg.payload</code> portion</p>
-        <p>The response to each incoming message has a lifespan timeout of 2 minutes, so any
-        responses to messages must be returned within that time or the message is simply discarded</p>
-    
+  <h3>Details</h3>
+      <p><code>msg.msgID</code> contains a unique message identifier that must be passed to the ocpp resonse node along with
+      the payload (if any) of the response. It is recommended that the <code>msg</code> output from the ocpp server node remain in tact
+      and passed all the way through to the ocpp response node, only modifying or replacing the <code>msg.payload</code> portion</p>
+      <p>The response to each incoming message has a lifespan timeout of 2 minutes, so any
+      responses to messages must be returned within that time or the message is simply discarded</p>
 </script>
-
-
 
 <script type="text/x-red" data-template-name="CP server SOAP">
 
-    <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name (defaults to :<PORT><URL>)" />
-    </div>
-    <div class="form-row">
-            <label for="node-input-port"><i class="icon-tag"></i> Port</label>
-            <input type="number" id="node-input-port" placeholder="Port Number (example: 8080)" />
-    </div>
-    <div class="header">OCPP 1.5</div>
-    <div class="bordered">
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" value="" id="node-input-enabled15">
-                1.5 enabled
-            </label>
-        </div>
+  <div class="form-row">
+      <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+      <input type="text" id="node-input-name" placeholder="Name (defaults to :<PORT><URL>)" />
+  </div>
+  <div class="form-row">
+          <label for="node-input-port"><i class="icon-tag"></i> Port</label>
+          <input type="number" id="node-input-port" placeholder="Port Number (example: 8080)" />
+  </div>
+  <div class="header">OCPP 1.5</div>
+  <div class="bordered">
+      <div class="checkbox">
+          <label>
+              <input type="checkbox" value="" id="node-input-enabled15">
+              1.5 enabled
+          </label>
+      </div>
 
-        <div id="container15" class="form-row">
-            <label for="node-input-path15"><i class="icon-globe"></i> Path</label>
-            <input type="text" id="node-input-path15" placeholder="OCPP 1.5 path (example: /chargepoint15 )" />
-        </div>
-    </div>
-    <div class="header">OCPP 1.6</div>
-    <div class="bordered">
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" value="" id="node-input-enabled16">
-                1.6 enabled
-            </label>
-        </div>
-        <div id="container16" class="form-row">
-            <label for="node-input-path16" ><i class="icon-globe"></i> Path</label>
-            <input type="text" id="node-input-path16" placeholder="OCPP 1.6 path (example: /chargepoint16 )" />
-        </div>
-    </div>
-    <div class="header">Logging</div>
-    <div class="bordered">
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" value="" id="node-input-log"/>
-                logging enabled
-            </label>
-        </div>
-        <div id="containerlog" class="form-row">
-            <label for="node-input-pathlog" >
-                <i class="icon-globe"></i> Path
-            </label>
-            <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
-        </div>
-    </div>
+      <div id="container15" class="form-row">
+          <label for="node-input-path15"><i class="icon-globe"></i> Path</label>
+          <input type="text" id="node-input-path15" placeholder="OCPP 1.5 path (example: /chargepoint15 )" />
+      </div>
+  </div>
+  <div class="header">OCPP 1.6</div>
+  <div class="bordered">
+      <div class="checkbox">
+          <label>
+              <input type="checkbox" value="" id="node-input-enabled16">
+              1.6 enabled
+          </label>
+      </div>
+      <div id="container16" class="form-row">
+          <label for="node-input-path16" ><i class="icon-globe"></i> Path</label>
+          <input type="text" id="node-input-path16" placeholder="OCPP 1.6 path (example: /chargepoint16 )" />
+      </div>
+  </div>
+  <div class="header">Logging</div>
+  <div class="bordered">
+      <div class="checkbox">
+          <label>
+              <input type="checkbox" value="" id="node-input-log"/>
+              logging enabled
+          </label>
+      </div>
+      <div id="containerlog" class="form-row">
+          <label for="node-input-pathlog" >
+              <i class="icon-globe"></i> Path
+          </label>
+          <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
+      </div>
+  </div>
 </script>
-    
+
 <script type="text/x-red" data-help-name="CP server SOAP">
-    <p>Charge Point EVSE (CP) that accepts OCPP SOAP incomming requests from Central System Services (CS)</p>
-    
-        <h3>Configuration Settings</h3>
-        <dl>
-            <dt>Name:</dt>
-            <dd>The name shown on the workspace</dd>
-            <dt>Port: <i>(example) 8080</i></dt>
-            <dd>The incoming port that the server listens on. If deploying multiple ocpp servers, the port numbers should be unique.</dd>
-            <dt>OCPP 1.x SOAP enabled</dt>
-            <dd>Enable/disable the protocols (OCPP 1.5/1.6 SOAP) supported by this CP node</dd>
-            <dt>Path: <i>(example) /chargepoint15</i></dt>
-            <dd>The unique path portion of the server that needs to be configured on the ESVE</dd>
-            <dt>logging enabled</dt>
-            <dd>enables/disables logging for this node</dd>
-            <dt>Path</dt>
-            <dd>Path to file used for logging. Required if "logging enabled" is checked, otherwise logging will be disabled at runtime</dd>        
-        </dl>
-    
-            <h3>Outputs</h3>
-                <dl class="messge-properties">
-                    <dt>ocpp <span class="property-type">object</dt>
-                    <dd><code>msg.ocpp</code> objcet containing ocpp related information
-                        <ul>
-                            <li><code>command</code>: the incomming request command</li>
-                            <li><code>chargeBoxIdentity</code>: name identifying the charge box</li>
-                            <li><code>From</code>: optional address of incoming request (SOAP only)</li>
-                            <li><code>MessageID</code>: optional incoming request message id</li>
-                        </ul>
-                    </dd>
-                    <dt>payload <span class="property-type">object</dt>
-                    <dd><code>msg.payload</code> object contains the following:
-                        <ul>
-                            <li><code>command</code>: the incomming request command</li>
-                            <li><code>data</code>: arguments received with the incoming request command stored as an key/value pair</li>
-                        </ul>
-    
-                    </dd>
-                </dl>
-    
-        <h3>Details</h3>
-            <p><code>msg.msgID</code> contains a unique message identifier that must be passed to the ocpp resonse node along with 
-            the payload (if any) of the response. It is recommended that the <code>msg</code> output from this node remain in tact 
-            and passed all the way through to the ocpp response node, only modifying or replacing the <code>msg.payload</code> portion</p>
-            <p>The response to each incoming message has a lifespan timeout of 2 minutes, so any
-            responses to messages must be returned within that time or the message is simply discarded</p>
-            <p>The <code>msg.payload.data</code> arguments object received from the request vary depending on the command. Refer to the OCPP specification for information
-                about required and optional parameters that may be received for each command.
-        
+  <p>Charge Point EVSE (CP) that accepts OCPP SOAP incomming requests from Central System Services (CS)</p>
+
+      <h3>Configuration Settings</h3>
+      <dl>
+          <dt>Name:</dt>
+          <dd>The name shown on the workspace</dd>
+          <dt>Port: <i>(example) 8080</i></dt>
+          <dd>The incoming port that the server listens on. If deploying multiple ocpp servers, the port numbers should be unique.</dd>
+          <dt>OCPP 1.x SOAP enabled</dt>
+          <dd>Enable/disable the protocols (OCPP 1.5/1.6 SOAP) supported by this CP node</dd>
+          <dt>Path: <i>(example) /chargepoint15</i></dt>
+          <dd>The unique path portion of the server that needs to be configured on the ESVE</dd>
+          <dt>logging enabled</dt>
+          <dd>enables/disables logging for this node</dd>
+          <dt>Path</dt>
+          <dd>Path to file used for logging. Required if "logging enabled" is checked, otherwise logging will be disabled at runtime</dd>
+      </dl>
+
+          <h3>Outputs</h3>
+              <dl class="messge-properties">
+                  <dt>ocpp <span class="property-type">object</dt>
+                  <dd><code>msg.ocpp</code> objcet containing ocpp related information
+                      <ul>
+                          <li><code>command</code>: the incomming request command</li>
+                          <li><code>chargeBoxIdentity</code>: name identifying the charge box</li>
+                          <li><code>From</code>: optional address of incoming request (SOAP only)</li>
+                          <li><code>MessageID</code>: optional incoming request message id</li>
+                      </ul>
+                  </dd>
+                  <dt>payload <span class="property-type">object</dt>
+                  <dd><code>msg.payload</code> object contains the following:
+                      <ul>
+                          <li><code>command</code>: the incomming request command</li>
+                          <li><code>data</code>: arguments received with the incoming request command stored as an key/value pair</li>
+                      </ul>
+
+                  </dd>
+              </dl>
+
+      <h3>Details</h3>
+          <p><code>msg.msgID</code> contains a unique message identifier that must be passed to the ocpp resonse node along with
+          the payload (if any) of the response. It is recommended that the <code>msg</code> output from this node remain in tact
+          and passed all the way through to the ocpp response node, only modifying or replacing the <code>msg.payload</code> portion</p>
+          <p>The response to each incoming message has a lifespan timeout of 2 minutes, so any
+          responses to messages must be returned within that time or the message is simply discarded</p>
+          <p>The <code>msg.payload.data</code> arguments object received from the request vary depending on the command. Refer to the OCPP specification for information
+              about required and optional parameters that may be received for each command.
 </script>
-    
+
 <script type="text/x-red" data-template-name="CS request JSON">
-    <div class="form-row">
-            <label for="node-input-name"><i class="icon-tag"></i> Name</label>
-            <input type="text" id="node-input-name" placeholder="Name (defaults to EVSE setup name)" />
-    </div>        
-    <div class="form-row">
-        <label for="node-input-remotecb"><i class="icon-tag"></i> EVSE</label>
-        <input type="text" id="node-input-remotecb" placeholder="Setup" /> 
-    </div>
-    <div class="form-row">
-        <label for="node-input-command"><i class="icon-cog"></i> Command</label>
-        <select id="node-input-command">
-            <option value="">&lt;None&gt;</option>
-            <option value="CancelReservation">Cancel Reservation</option>
-            <option value="ChangeAvailability">Change Availability</option>
-            <option value="ChangeConfiguration">Change Configuration</option>
-            <option value="ClearCache">Clear Cache</option>
-            <option value="ClearChargingProfile">*Clear Charging Profile</option>
-            <option value="DataTransfer">Data Transfer</option>
-            <option value="GetCompositeSchedule">*Get Composite Schedule</option>
-            <option value="GetConfiguration">Get Configuration</option>
-            <option value="GetDiagnostics">Get Diagnostics</option>
-            <option value="GetLocalListVersion">Get Local List Version</option>
-            <option value="RemoteStartTransaction">Remote Start Transaction</option>
-            <option value="RemoteStopTransaction">Remote Stop Transaction</option>
-            <option value="ReserveNow">Reserve Now</option>
-            <option value="Reset">Reset</option>
-            <option value="SendLocalList">Send Local List</option>
-            <option value="SetChargingProfile">*Set Charging Profile</option>
-            <option value="TriggerMessage">*Trigger Message</option>            
-            <option value="UnlockConnector">Unlock Connector</option>
-            <option value="UpdateFirmware">Update Firmware</option>
-        </select><br/>
-        <p>* = 1.6 command only</p>
-    </div>
+  <div class="form-row">
+          <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+          <input type="text" id="node-input-name" placeholder="Name (defaults to EVSE setup name)" />
+  </div>
+  <div class="form-row">
+      <label for="node-input-remotecb"><i class="icon-tag"></i> EVSE</label>
+      <input type="text" id="node-input-remotecb" placeholder="Setup" />
+  </div>
+  <div class="form-row">
+      <label for="node-input-command"><i class="icon-cog"></i> Command</label>
+      <select id="node-input-command">
+          <option value="">&lt;None&gt;</option>
+          <option value="CancelReservation">Cancel Reservation</option>
+          <option value="ChangeAvailability">Change Availability</option>
+          <option value="ChangeConfiguration">Change Configuration</option>
+          <option value="ClearCache">Clear Cache</option>
+          <option value="ClearChargingProfile">*Clear Charging Profile</option>
+          <option value="DataTransfer">Data Transfer</option>
+          <option value="GetCompositeSchedule">*Get Composite Schedule</option>
+          <option value="GetConfiguration">Get Configuration</option>
+          <option value="GetDiagnostics">Get Diagnostics</option>
+          <option value="GetLocalListVersion">Get Local List Version</option>
+          <option value="RemoteStartTransaction">Remote Start Transaction</option>
+          <option value="RemoteStopTransaction">Remote Stop Transaction</option>
+          <option value="ReserveNow">Reserve Now</option>
+          <option value="Reset">Reset</option>
+          <option value="SendLocalList">Send Local List</option>
+          <option value="SetChargingProfile">*Set Charging Profile</option>
+          <option value="TriggerMessage">*Trigger Message</option>
+          <option value="UnlockConnector">Unlock Connector</option>
+          <option value="UpdateFirmware">Update Firmware</option>
+      </select><br/>
+      <p>* = 1.6 command only</p>
+  </div>
 
-    <div class="form-row">
-        <label for="node-input-cmddata"><i class="icon-cog"></i> Command Params</label>
-        <textarea rows="4" cols="50" id="node-input-cmddata" placeholder="JSON formatted parameters"></textarea>
-    </div>
-    <!---
-    <div class="header">Logging</div>
-    <div class="bordered">
-        <div class="checkbox">
-            <label>
-                <input type="checkbox" value="" id="node-input-log"/>
-                logging enabled
-            </label>
-        </div>
-        <div id="containerlog" class="form-row">
-            <label for="node-input-pathlog" >
-                <i class="icon-globe"></i> Path
-            </label>
-            <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
-        </div>
-    </div>
-    --->
+  <div class="form-row">
+      <label for="node-input-cmddata"><i class="icon-cog"></i> Command Params</label>
+      <textarea rows="4" cols="50" id="node-input-cmddata" placeholder="JSON formatted parameters"></textarea>
+  </div>
+  <!---
+  <div class="header">Logging</div>
+  <div class="bordered">
+      <div class="checkbox">
+          <label>
+              <input type="checkbox" value="" id="node-input-log"/>
+              logging enabled
+          </label>
+      </div>
+      <div id="containerlog" class="form-row">
+          <label for="node-input-pathlog" >
+              <i class="icon-globe"></i> Path
+          </label>
+          <input type="text" id="node-input-pathlog" placeholder="log file path and name" />
+      </div>
+  </div>
+  --->
 </script>
-        
+
 <script type="text/x-red" data-help-name="CS request JSON">
-    <p>Send Central System (CS) OCPP JSON requests messages to EVSEs (CP)</p>
+  <p>Send Central System (CS) OCPP JSON requests messages to EVSEs (CP)</p>
 
-    <b>NOTE: This node works in conjunction with and communicates through the CS server node. A CS server node must exist on the flow in order for this node to operate correctly</b>
+  <b>NOTE: This node works in conjunction with and communicates through the CS server node. A CS server node must exist on the flow in order for this node to operate correctly</b>
 
-    <h3>Configuration Settings</h3>
-    <dl>
-        <dt>Name:</dt>
-        <dd>The name shown on the workspace</dd>
-        <dt>EVSE:</dt>
-        <dd>Choose, create, or modify an ESVE (CP). NOTE: This needs to be a JSON charge point EVSE</dd>
-        <dt>Command:</i></dt>
-        <dd>(Optional) Select an OCPP command to send if none is passed in via <code>msg.payload.command</code></dd>
-        <dt>Command Params:</dt>
-        <dd>(Optional) OCPP command data object to send if none is passed in via <code>msg.payload.data</code>. Must be JSON formatted</dd>
-        <!---
-        <dt>logging enabled</dt>
-        <dd>enables/disables logging for this node</dd>
-        <dt>Path</dt>
-        <dd>Path to file used for logging. Required if "logging enabled" is checked, otherwise logging will be disabled at runtime</dd>        
-        --->
-    </dl>
+  <h3>Configuration Settings</h3>
+  <dl>
+      <dt>Name:</dt>
+      <dd>The name shown on the workspace</dd>
+      <dt>EVSE:</dt>
+      <dd>Choose, create, or modify an ESVE (CP). NOTE: This needs to be a JSON charge point EVSE</dd>
+      <dt>Command:</i></dt>
+      <dd>(Optional) Select an OCPP command to send if none is passed in via <code>msg.payload.command</code></dd>
+      <dt>Command Params:</dt>
+      <dd>(Optional) OCPP command data object to send if none is passed in via <code>msg.payload.data</code>. Must be JSON formatted</dd>
+      <!---
+      <dt>logging enabled</dt>
+      <dd>enables/disables logging for this node</dd>
+      <dt>Path</dt>
+      <dd>Path to file used for logging. Required if "logging enabled" is checked, otherwise logging will be disabled at runtime</dd>
+      --->
+  </dl>
 
-    <h3>Inputs</h3>
-        <dl class="message-properties">
-            <dt><code>msg.payload.cbId</code> <i>optional</i> <span class="property-type">string</span></dt>
-            <dd>Charge Box Identifier or target EVSE (CP). Overrides config setting.</dd>
-            <dt><code>msg.payload.MessageId</code> <i>optional</i> <span class="property-type">string</span></dt>
-            <dd>A unique message identifier. Overrides default provided by the node which is unknow to the user at the time the message is sent</dd>
-            <dt><code>msg.payload.command</code> <i>optional</i> <span class="property-type">string</span></dt>
-            <dd>OCPP JSON "Central System" request command. Overrides config setting</dd>
-            <dt><code>msg.payload.data</code> <i>optional</i> <span class="property-type">object</span></dt>
-            <dd>Object containing parameters for the command. Overrides config setting</dd>
-        </dl>
+  <h3>Inputs</h3>
+      <dl class="message-properties">
+          <dt><code>msg.payload.cbId</code> <i>optional</i> <span class="property-type">string</span></dt>
+          <dd>Charge Box Identifier or target EVSE (CP). Overrides config setting.</dd>
+          <dt><code>msg.payload.MessageId</code> <i>optional</i> <span class="property-type">string</span></dt>
+          <dd>A unique message identifier. Overrides default provided by the node which is unknow to the user at the time the message is sent</dd>
+          <dt><code>msg.payload.command</code> <i>optional</i> <span class="property-type">string</span></dt>
+          <dd>OCPP JSON "Central System" request command. Overrides config setting</dd>
+          <dt><code>msg.payload.data</code> <i>optional</i> <span class="property-type">object</span></dt>
+          <dd>Object containing parameters for the command. Overrides config setting</dd>
+      </dl>
 
-    <h3>Outputs</h3>
-        <dl class="message-properties">
-            <dt>ocpp <span class="property-type">object</dt>
-            <dd><code>msg.ocpp</code> objcet containing ocpp related information
-                <ul>
-                    <li><code>command</code>: the request command sent</li>
-                    <li><code>chargeBoxIdentity</code>: name identifying the charge box</li>
-                    <li><code>MessageId</code>: The unique message identifier</li>
-                    <li><code>data</code>: object containing the parameters passed to the EVSE for the request (if any)</li>
-                </ul>
-            </dd>
-            <dt>payload <span class="property-type">object</dt>
-            <dd><code>msg.payload</code>
-                <ul>
-                    <li><code>command</code>: The originating request command</li>
-                    <li><code>cbId</code>: The responding EVSE (CP) identifier</li>
-                    <li><code>data</code>: object containing response data sent back from the EVSE. Contents vary depending on the request command.</li>
-            </dd>
-        </dl>
+  <h3>Outputs</h3>
+      <dl class="message-properties">
+          <dt>ocpp <span class="property-type">object</dt>
+          <dd><code>msg.ocpp</code> objcet containing ocpp related information
+              <ul>
+                  <li><code>command</code>: the request command sent</li>
+                  <li><code>chargeBoxIdentity</code>: name identifying the charge box</li>
+                  <li><code>MessageId</code>: The unique message identifier</li>
+                  <li><code>data</code>: object containing the parameters passed to the EVSE for the request (if any)</li>
+              </ul>
+          </dd>
+          <dt>payload <span class="property-type">object</dt>
+          <dd><code>msg.payload</code>
+              <ul>
+                  <li><code>command</code>: The originating request command</li>
+                  <li><code>cbId</code>: The responding EVSE (CP) identifier</li>
+                  <li><code>data</code>: object containing response data sent back from the EVSE. Contents vary depending on the request command.</li>
+          </dd>
+      </dl>
 
-        <h3>Details</h3>
-        <p>As noted above, This node works in conjunction with and communicates through the CS server node. 
-        A CS server node must exist on the flow in order for this node to operate correctly. However, a CS server node does not reply
-        on this node in order to work properly. This node only deals with a Central Systems requests to OCPP JSON supported EVSE's (CP).
-        <p>Logging for this node is handled and determined by the accompnying CS server node.
-        <p>The <code>msg.payload.data</code> arguments object received from the request vary depending on the command. Refer to the OCPP specification for information
-            about required and optional parameters that may be received for each command.
-    
+      <h3>Details</h3>
+      <p>As noted above, This node works in conjunction with and communicates through the CS server node.
+      A CS server node must exist on the flow in order for this node to operate correctly. However, a CS server node does not reply
+      on this node in order to work properly. This node only deals with a Central Systems requests to OCPP JSON supported EVSE's (CP).
+      <p>Logging for this node is handled and determined by the accompnying CS server node.
+      <p>The <code>msg.payload.data</code> arguments object received from the request vary depending on the command. Refer to the OCPP specification for information
+          about required and optional parameters that may be received for each command.
 </script>
