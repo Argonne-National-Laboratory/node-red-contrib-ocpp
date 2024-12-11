@@ -1,3 +1,8 @@
+// ocpp-server.js
+// Ocpp server
+//
+// Copyright (C) 2025, Argonne National Laboratory, Bryan Nystrom
+//
 "use strict";
 
 const express = require("express");
@@ -54,7 +59,12 @@ let valid_evses = new Map();
 valid_evses.set("evsesim1", "evsesim1");
 valid_evses.set("evse-002", "EVSE-002");
 
-function cmd_set_valid_evses(evse) {}
+function cmd_set_auth_evses(auth_list) {
+  let keys = Object.keys(auth_list);
+  for (let i = 0; i < keys.length; i++) {
+    valid_evses.set(keys[i], auth_list[keys[i]]);
+  }
+}
 
 // Node-Red stuff
 ///////////////////////////////////
@@ -432,7 +442,7 @@ module.exports = function (RED) {
             debug_csserver(`Sending message: ${request[msgAction]} to CS`);
             let ocpprequest = JSON.stringify(request);
             ws.send(JSON.stringify(request));
-            log_ocpp_msg(request, cbid, "CS");
+            log_ocpp_msg(request, cbId, "CS");
           };
 
           debug_csserver(`Setting up callback for ${eventname}`);
@@ -563,7 +573,7 @@ module.exports = function (RED) {
                 debug_csserver(`msg.msgId => ${msg.msgId}`);
                 // Lookup the command name via the returned message ID
                 reqMsgIdToCmd.forEach(function (key, val) {
-                  debug_csserver("key: " + key + "value: " + val);
+                  debug_csserver("key: " + key + " value: " + val);
                 });
                 if (reqMsgIdToCmd.has(msg.msgId)) {
                   msg.ocpp.command = reqMsgIdToCmd.get(msg.msgId);
@@ -1136,12 +1146,18 @@ module.exports = function (RED) {
     };
   }
 
+  ////////////////////////////////////////////////////////////////
+  // OCPPRequestJNode; JSON Request Node
+  // ////////////////////////////////////////////////////////////
+
   function OCPPRequestJNode(config) {
     RED.nodes.createNode(this, config);
 
     debug_csrequest("Starting CS request JSON Node");
     const node = this;
 
+    // Copy over the config defaults
+    //
     this.remotecb = RED.nodes.getNode(config.remotecb);
 
     this.cbId = this.remotecb.cbId;
@@ -1153,7 +1169,9 @@ module.exports = function (RED) {
 
     let eventname = node.cbId + REQEVTPOSTFIX;
 
-    debug_csrequest("Event Names: " + ee.eventNames());
+    // debug_csrequest("Event Names: " + ee.eventNames());
+
+    // let connname = msg.ocpp.chargeBoxIdentity + CBIDCONPOSTFIX;
 
     // Change the node status to show connection status
     ee.on(node.cbId + CBIDCONPOSTFIX, function con_state(state) {
@@ -1191,18 +1209,35 @@ module.exports = function (RED) {
     this.on("input", function (msg) {
       msg.ocpp = {};
 
-      msg.ocpp.chargeBoxIdentity = msg.payload.cbId || node.cbId;
+      let xxx = JSON.stringify(msg);
+      debug_csrequest(`Got a REQUEST input message: ${xxx}`);
 
-      let eventname = msg.ocpp.chargeBoxIdentity + REQEVTPOSTFIX;
-      let connname = msg.ocpp.chargeBoxIdentity + CBIDCONPOSTFIX;
-
-      if (msg.ocpp?.command && msg.ocpp.command.startsWith("LOCAL_")) {
-        debug_csrequest("Command: " + msg.ocpp.command);
+      // This block handles incoming local commands for the server nodes
+      if (msg.payload?.command && msg.payload.command.startsWith("LOCAL_")) {
+        debug_csrequest("Command: " + msg.payload.command);
+        switch (msg.payload.command) {
+          case "LOCAL_SET_ALL_AUTH_EVSES":
+            cmd_set_auth_evses(msg.payload.data);
+            return;
+          case "LOCAL_DISCONNECT":
+            return;
+          default:
+            break;
+        }
         return;
       }
 
+      msg.ocpp.chargeBoxIdentity = msg.payload.cbId || node.cbId;
+
+      debug_csrequest(`Message for CBID: ${msg.ocpp.chargeBoxIdentity}`);
+
+      let eventname = msg.ocpp.chargeBoxIdentity + REQEVTPOSTFIX;
+
       debug_csrequest(ee.eventNames());
 
+      // At this point, only handle requests that have a targe evse already connected
+      // If cb_map doesn't have this cbId registered, reject and return
+      //
       if (cb_map.has(msg.ocpp.chargeBoxIdentity) == false) {
         node.status({
           fill: "grey",
@@ -1210,12 +1245,16 @@ module.exports = function (RED) {
           text: `Not connected to ${msg.ocpp.chargeBoxIdentity}`,
         });
         debug_csrequest(
-          `Attempt to send message to cbId ${msg.ocpp.chargeBoxIdentity} failed. Not connected yet.`,
+          `Attempt to send message to cbId ${msg.ocpp.chargeBoxIdentity} failed. EVSE not connected`,
         );
         return;
       }
 
+      // Prioritize the command in the payload
       msg.ocpp.command = msg.payload.command || node.command;
+
+      debug_csrequest("Command in payload: %s", msg.payload.command);
+      debug_csrequest("Data config: %O", msg.payload.data);
 
       // We are only validating that there is some text for the command.
       // Currently not checking for a valid command.
