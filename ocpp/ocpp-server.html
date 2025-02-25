@@ -625,4 +625,8 @@
       <p>Logging for this node is handled and determined by the accompnying CS server node.
       <p>The <code>msg.payload.data</code> arguments object received from the request vary depending on the command. Refer to the OCPP specification for information
           about required and optional parameters that may be received for each command.
+      <p>You may also do local commands that control the behavior of the server. Those commands all start with prefix LOCAL_ . Currently the commands are "LOCAL_SET_ALL_AUTH_EVSES",
+          which takes a data array of <cbId>:<password>. If password is blank then no basic authentication is required for the particular EVSE (cbId). "LOCAL_GET_ONLINE_LIST" takes
+          no data parameters and will cause the server to return a list of EVSEs that it thinks are "online". All "LOCAL_" commands also require a "type": 99 to designate them
+          as local (non-OCPP) commands.
 </script>
