@@ -56,9 +56,6 @@ soap.Server.prototype._envelope = function (body, includeTimestamp) {
 
 let valid_evses = new Map();
 
-valid_evses.set("evsesim1", "evsesim1");
-valid_evses.set("evse-002", "EVSE-002");
-
 function cmd_set_auth_evses(auth_list) {
   let keys = Object.keys(auth_list);
   for (let i = 0; i < keys.length; i++) {
@@ -128,7 +125,7 @@ module.exports = function (RED) {
       node.send([null, msg]);
     }
     ////////////////////////////////////
-    function ocppAthenticate(req) {
+    function ocppAuthenticate(req) {
       const cbId = req.params.cbid || "";
 
       debug_csserver("CBID = " + cbId);
@@ -266,18 +263,20 @@ module.exports = function (RED) {
     let wsrequest;
 
     wss.on("connection", function connection(ws, req) {
-      if (!ocppAthenticate(req)) {
+      if (!ocppAuthenticate(req)) {
         ws.terminate();
         return;
       }
       if (req.params) {
-        debug_csserver(`Got a connection from ${req.params.cbid}...`);
+        debug_csserver(`wss.on("connection") from  ${req.params.cbid}`);
+
         const cbid = req.params.cbid;
         let connname = cbid + CBIDCONPOSTFIX;
         const previous_connection = cb_map.get(cbid);
+
         if (previous_connection !== undefined) {
           debug_csserver(
-            `There's an existing connection with ${req.params.cbid}, terminating the old one...`,
+            `Duplicate connection from ${req.params.cbid}, terminating the old one...`,
           );
           // We can only handle one connection at a time. Terminate the previous one.
           previous_connection.close(1002);
@@ -296,6 +295,8 @@ module.exports = function (RED) {
 
         // Remove cbid from map when it closes and emit a message
         ws.on("close", function () {
+          debug_csserver(`ws.on("close")  from ${cbid}`);
+
           if (cb_map.get(cbid) === this) {
             cb_map.delete(cbid);
           }
@@ -309,8 +310,11 @@ module.exports = function (RED) {
         });
 
         ws.on("message", function (msgIn) {
-          debug_csserver(msgIn);
+          debug_csserver(`ws.on("message") from ${cbid}: ${msgIn}`);
         });
+      } else {
+        ws.close(1002);
+        debug_csserver(`Connection request without params rejected`);
       }
     });
 
@@ -442,7 +446,7 @@ module.exports = function (RED) {
             debug_csserver(`Sending message: ${request[msgAction]} to CS`);
             let ocpprequest = JSON.stringify(request);
             ws.send(JSON.stringify(request));
-            log_ocpp_msg(request, cbId, "CS");
+            log_ocpp_msg(request, cbId, "CSMS");
           };
 
           debug_csserver(`Setting up callback for ${eventname}`);
@@ -477,7 +481,7 @@ module.exports = function (RED) {
           ws.on("message", function (msgIn) {
             let response = [];
 
-            debug_csserver("Yes, I did get a message");
+            debug_csserver("Enter ws.on('message')");
 
             let id = crypto.randomUUID();
 
@@ -1210,14 +1214,21 @@ module.exports = function (RED) {
       msg.ocpp = {};
 
       let xxx = JSON.stringify(msg);
-      debug_csrequest(`Got a REQUEST input message: ${xxx}`);
+      //debug_csrequest(`Got a REQUEST input message: ${xxx}`);
 
       // This block handles incoming local commands for the server nodes
       if (msg.payload?.command && msg.payload.command.startsWith("LOCAL_")) {
-        debug_csrequest("Command: " + msg.payload.command);
+        //debug_csrequest("Command: " + msg.payload.command);
         switch (msg.payload.command) {
           case "LOCAL_SET_ALL_AUTH_EVSES":
             cmd_set_auth_evses(msg.payload.data);
+            return;
+          case "LOCAL_GET_ONLINE_LIST":
+            msg = {};
+            msg.payload = {
+              online: Array.from(cb_map.keys()),
+            };
+            node.send(msg);
             return;
           case "LOCAL_DISCONNECT":
             return;
