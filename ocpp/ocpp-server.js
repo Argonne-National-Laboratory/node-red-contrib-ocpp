@@ -97,6 +97,7 @@ module.exports = function (RED) {
     this.logging = config.log || false;
     this.pathlog = config.pathlog;
     this.name = config.name || "OCPP Server Port " + this.svcPort;
+    this.authEVSE = true;
 
     debug_csserver(
       `Starting CS Server Node. Listening on port ${this.svcPort}`,
@@ -127,14 +128,17 @@ module.exports = function (RED) {
     ////////////////////////////////////
     function ocppAuthenticate(req) {
       const cbId = req.params.cbid || "";
+      let isAuth = false;
 
       debug_csserver("CBID = " + cbId);
 
-      if (valid_evses.has(cbId)) {
-        return true;
+      if (valid_evses.size == 0 || this.authEVSE == false) {
+        isAuth = true;
       }
-
-      return false;
+      else if (valid_evses.has(cbId)) {
+        isAuth = true;
+      }
+      return isAuth;
     }
 
     // read in the soap definition
@@ -1080,7 +1084,7 @@ module.exports = function (RED) {
       );
       let cbid =
         '<tns:chargeBoxIdentity soap:mustUnderstand="true">' +
-          headers.chargeBoxIdentity.$value ||
+        headers.chargeBoxIdentity.$value ||
         headers.chargeBoxIdentity ||
         "Unknown" + "</tns:chargeBoxIdentity>";
       soapServer.addSoapHeader(cbid);
@@ -1284,9 +1288,9 @@ module.exports = function (RED) {
         } catch (e) {
           node.warn(
             "OCPP JSON request node invalid payload.data for message (" +
-              msg.ocpp.command +
-              "): " +
-              e.message,
+            msg.ocpp.command +
+            "): " +
+            e.message,
           );
           return;
         }
@@ -1296,9 +1300,9 @@ module.exports = function (RED) {
         } catch (e) {
           node.warn(
             "OCPP JSON request node invalid message config data for message (" +
-              msg.ocpp.command +
-              "): " +
-              e.message,
+            msg.ocpp.command +
+            "): " +
+            e.message,
           );
           return;
         }
