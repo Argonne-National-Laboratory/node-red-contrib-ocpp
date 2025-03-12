@@ -1,4 +1,5 @@
 <style>
+
   .header {
     text-decoration: underline;
     font-weight: bold;
@@ -50,7 +51,7 @@
       name: { value: "", required: false },
       // port: {value: "", required: true, validate: RED.validators.number()},
       port: { value: "", required: true },
-      portType: { value: "env", required: true },
+      portType: { value: "num", required: true },
       enabled15: { value: false, required: true },
       path15: { value: "", required: false, validate: valPath15 },
       enabled16: { value: false, required: true },
@@ -105,10 +106,17 @@
       });
 
       $("#node-input-port").typedInput({
+        types: ["num","env"],
+        typeField: "#node-input-portType"
+      });
+
+      /*
+      $("#node-input-port").typedInput({
         types: ["num", "env"],
         typeField: "#node-input-portType",
         default: "num",
       });
+      */
     },
     oneditsave: function () {
       var e16 = $("#node-input-enabled16").is(":checked");

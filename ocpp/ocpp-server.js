@@ -13,6 +13,8 @@ const events = require("events");
 //Use nodejs built-in crypto for uuid
 const crypto = require("crypto");
 
+const auth = require("basic-auth");
+
 const xmlconvert = require("xml-js");
 const expressws = require("express-ws");
 
@@ -90,13 +92,14 @@ module.exports = function (RED) {
     );
     this.svcPath15 = config.path15;
     this.svcPath16 = config.path16;
-    this.svcPath16j = config.path16j;
+    this.svcPath16j = config.path16j || "/";
     this.enabled15 = config.enabled15;
     this.enabled16 = config.enabled16;
     this.enabled16j = config.enabled16j;
     this.logging = config.log || false;
     this.pathlog = config.pathlog;
     this.name = config.name || "OCPP Server Port " + this.svcPort;
+    this.authEVSE = false;
 
     debug_csserver(
       `Starting CS Server Node. Listening on port ${this.svcPort}`,
@@ -125,16 +128,63 @@ module.exports = function (RED) {
       node.send([null, msg]);
     }
     ////////////////////////////////////
-    function ocppAuthenticate(req) {
+
+    function ocpp2Authenticate(req, doAuth, route) {
+      const user = auth(req);
       const cbId = req.params.cbid || "";
 
-      debug_csserver("CBID = " + cbId);
+      const reqUrl = new URL(req.url, `ws://${req.headers.host}`)
 
-      if (valid_evses.has(cbId)) {
+      /***
+      ** Used for debugging authorization
+      ** commented out for security reasons
+      **************************************************************
+      debug_csserver(`Route: ${route}`)
+      debug_csserver(`cbId: ${cbId}`)
+      debug_csserver(`doAuth: ${doAuth}`)
+      debug_csserver(`reqUrl.pathname: ${reqUrl.pathname}`)
+      let pass = reqUrl.pathname.startsWith(`${route}/${cbId}`);
+      debug_csserver(`route match: ${pass}`);
+
+      ***/
+
+
+      if (!reqUrl.pathname.startsWith(`${route}/${cbId}`)) {
+        debug_csserver('Invalid Route: ${req.url.pathname}');
+        return false;
+      }
+
+      if (valid_evses.size == 0 && doAuth == false) {
+        debug_csserver(`Allowing ${cbId} due to doAuth: ${doAuth} and valid_evses.size: ${valid_evses.size}`)
         return true;
       }
 
-      return false;
+      let pw = valid_evses.get(cbId);
+      if (valid_evses.get(cbId) == "") {
+
+        debug_csserver(`Allowing ${cbId} due to no password: ${pw} `)
+        return true;
+      }
+      if (
+        !user ||
+        !user.hasOwnProperty("name") ||
+        !user.hasOwnProperty("pass")
+      ) {
+        debug_csserver(`Failing auth for ${cbId} due to no lack of auth info in ws connect`)
+        return false;
+      }
+      debug_csserver(`Try to Auth: ${user.name} = ${cbId} with p/w ${user.pass}`);
+
+      if (
+        user.name !== cbId ||
+        !valid_evses.has(cbId) ||
+        valid_evses.get(user.name) !== user.pass
+      ) {
+        debug_csserver("NOT Authorized");
+        return false;
+      }
+      debug_csserver("Authorized");
+      return true;
     }
 
     // read in the soap definition
@@ -263,11 +313,14 @@ module.exports = function (RED) {
     let wsrequest;
 
     wss.on("connection", function connection(ws, req) {
-      if (!ocppAuthenticate(req)) {
-        ws.terminate();
-        return;
-      }
+
       if (req.params) {
+
+        if (!ocpp2Authenticate(req, node.authEVSE, node.svcPath16j)) {
+          ws.terminate();
+          return;
+        }
+
         debug_csserver(`wss.on("connection") from  ${req.params.cbid}`);
 
         const cbid = req.params.cbid;
@@ -1080,7 +1133,7 @@ module.exports = function (RED) {
       );
       let cbid =
         '<tns:chargeBoxIdentity soap:mustUnderstand="true">' +
-          headers.chargeBoxIdentity.$value ||
+        headers.chargeBoxIdentity.$value ||
         headers.chargeBoxIdentity ||
         "Unknown" + "</tns:chargeBoxIdentity>";
       soapServer.addSoapHeader(cbid);
@@ -1284,9 +1337,9 @@ module.exports = function (RED) {
         } catch (e) {
           node.warn(
             "OCPP JSON request node invalid payload.data for message (" +
-              msg.ocpp.command +
-              "): " +
-              e.message,
+            msg.ocpp.command +
+            "): " +
+            e.message,
           );
           return;
         }
@@ -1296,9 +1349,9 @@ module.exports = function (RED) {
         } catch (e) {
           node.warn(
             "OCPP JSON request node invalid message config data for message (" +
-              msg.ocpp.command +
-              "): " +
-              e.message,
+            msg.ocpp.command +
+            "): " +
+            e.message,
           );
           return;
         }
