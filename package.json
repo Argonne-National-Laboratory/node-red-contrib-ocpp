@@ -46,6 +46,7 @@
   },
   "homepage": "https://github.com/Argonne-National-Laboratory/node-red-contrib-ocpp#readme",
   "dependencies": {
+    "basic-auth": "^2.0.1",
     "debug": "^4.3.1",
     "express": "^4.17.1",
     "express-ws": "^5.0.2",
