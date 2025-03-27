@@ -160,7 +160,7 @@ module.exports = function (RED) {
       }
 
       let pw = valid_evses.get(cbId);
-      if (valid_evses.get(cbId) == "") {
+      if (valid_evses.get(cbId) == "" || valid_evses.get(cbId) === undefined) {
 
         debug_csserver(`Allowing ${cbId} due to no password: ${pw} `)
         return true;
